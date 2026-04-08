@@ -16,8 +16,16 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    int sysretval;
+    bool retval = false;
+    sysretval = system(cmd);
+#ifdef DEBUG
+    printf("<DO_SYSTEM>sysretval = %d\n", sysretval);
+#endif
+    if (sysretval >= 0)
+    	retval = true;
 
-    return true;
+    return retval;
 }
 
 /**
@@ -47,7 +55,7 @@ bool do_exec(int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 /*
  * TODO:
@@ -60,6 +68,32 @@ bool do_exec(int count, ...)
 */
 
     va_end(args);
+    
+    //int retval;
+    pid_t child;
+    child = fork();
+    if (child == -1)
+    {
+    	// fork failed
+    	return false;
+    }
+    else if (child == 0)
+    {
+    	// this is the child process
+    	execv(command[0], command); // NULL is already added as last argument above
+    	// if execv returns we have an error - execv should NOT return !
+    	return false;
+    }
+    else
+    {
+    	// this is the parent process
+    	// here we should wait for the child process
+    	int childstatus;
+    	waitpid(child, &childstatus, 0);
+#ifdef DEBUG    	
+    	printf("<DO_EXEC>Child exited with status %d\n", childstatus);
+#endif
+    }
 
     return true;
 }
@@ -82,7 +116,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 
 /*
@@ -94,6 +128,45 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 */
 
     va_end(args);
+
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd<0)
+    {
+    	// error opening output file for redirect
+    	return false;
+    }
+    
+    //int retval;
+    pid_t child;
+    child = fork();
+    if (child == -1)
+    {
+    	// fork failed
+    	return false;
+    }
+    else if (child == 0)
+    {
+    	// this is the child process
+    	if (dup2(fd, 1) < 0)
+    	{
+    		// error duplicating file handle for stdout
+    		close(fd);
+    		return false;
+    	}
+    	execv(command[0], command); // NULL is already added as last argument above
+    	// if execv returns we have an error - execv should NOT return !
+    	return false;
+    }
+    else
+    {
+    	// this is the parent process
+    	// here we should wait for the child process
+    	int childstatus;
+    	waitpid(child, &childstatus, 0);
+#ifdef DEBUG    	
+    	printf("<DO_EXEC_REDIRECT>Child exited with status %d\n", childstatus);
+#endif
+    }
 
     return true;
 }
