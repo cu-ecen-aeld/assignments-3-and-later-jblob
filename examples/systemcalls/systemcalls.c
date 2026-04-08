@@ -144,14 +144,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
 
     va_end(args);
 
-    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
-    if (fd<0)
-    {
-    	// error opening output file for redirect
-    	return false;
-    }
-    
-    //int retval;
     pid_t child;
     child = fork();
     if (child == -1)
@@ -161,6 +153,13 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     }
     else if (child == 0)
     {
+		int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+		if (fd<0)
+		{
+			// error opening output file for redirect
+			return false;
+		}
+		
     	// this is the child process
     	if (dup2(fd, 1) < 0)
     	{
@@ -170,8 +169,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     	}
     	execv(command[0], command); // NULL is already added as last argument above
     	// if execv returns we have an error - execv should NOT return !
-//    	return false;
-	exit(-1);
+		// we shouold not return something here,
+		// because the parent process would interprete this as success ?
+		// return false;
+		exit(-1);
     }
     else
     {
