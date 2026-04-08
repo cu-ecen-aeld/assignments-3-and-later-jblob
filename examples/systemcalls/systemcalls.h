@@ -6,7 +6,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
-#define DEBUG
+//#define DEBUG
 
 bool do_system(const char *command);
 
