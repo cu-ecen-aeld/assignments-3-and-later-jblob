@@ -82,20 +82,35 @@ bool do_exec(int count, ...)
     	// this is the child process
     	execv(command[0], command); // NULL is already added as last argument above
     	// if execv returns we have an error - execv should NOT return !
-    	return false;
+        perror("execv");
+//    	return false;
+    	exit(-1);
     }
     else
     {
     	// this is the parent process
     	// here we should wait for the child process
     	int childstatus;
-    	waitpid(child, &childstatus, 0);
+        if (waitpid(child, &childstatus, 0) == -1) 
+        {
 #ifdef DEBUG    	
-    	printf("<DO_EXEC>Child exited with status %d\n", childstatus);
+	   printf("<DO_EXEC>Child exited with status %d\n", childstatus);
 #endif
-    }
+           return false;
+        }
 
-    return true;
+        // Check if the child exited normally AND if it returned 0 (success)
+        if (WIFEXITED(childstatus) && WEXITSTATUS(childstatus) == 0) 
+        {
+            return true;
+        } 
+        else 
+        {
+            // This will return false if execv failed OR if the command 
+            // itself returned a non-zero exit code.
+            return false; 
+        }
+    }
 }
 
 /**
@@ -155,7 +170,8 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     	}
     	execv(command[0], command); // NULL is already added as last argument above
     	// if execv returns we have an error - execv should NOT return !
-    	return false;
+//    	return false;
+	exit(-1);
     }
     else
     {
