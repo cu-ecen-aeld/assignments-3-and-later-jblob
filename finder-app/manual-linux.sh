@@ -22,6 +22,11 @@ else
 fi
 
 mkdir -p ${OUTDIR}
+if [ ! -d "${OUTDIR}" ];
+then
+	echo "error creating output directory $OUTDIR"
+	exit 1
+fi
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/linux-stable" ]; then
