@@ -5,5 +5,6 @@ build/
 crosstool-ng
 aesd-build
 .vscode/
-test.sh.log
 Makefile_tmp
+build/
+*.log
