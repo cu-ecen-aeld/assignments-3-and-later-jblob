@@ -55,7 +55,7 @@ fi
 
 for i in $( seq 1 $NUMFILES)
 do
-	/bin/writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"
+	/usr/bin/writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"
 done
 
 OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR" > /tmp/assignment4-result.txt)
