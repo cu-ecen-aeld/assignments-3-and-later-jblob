@@ -23,17 +23,30 @@ bool caught_sigterm = false;
 
 static void signal_handler(int signal_number)
 {
+	int status;
 	if (signal_number == SIGINT)
 	{
 		caught_sigint = true;
 		// printf("Caught SIGINT\n");
 		syslog(LOG_DEBUG, "Caught signal, exiting");
+		
+		status = remove(FOUT);
+		if( status != 0 )
+		{
+			syslog(LOG_ERR, "error deleting file %s\n", FOUT);
+		}
 	}
 	else if (signal_number == SIGTERM)
 	{
 		caught_sigterm = true;
 		// printf("Caught SIGTERM\n");
 		syslog(LOG_DEBUG, "Caught signal, exiting");
+
+		status = remove(FOUT);
+		if( status != 0 )
+		{
+			syslog(LOG_ERR, "error deleting file %s\n", FOUT);
+		}
 	}
 	else
 	{
