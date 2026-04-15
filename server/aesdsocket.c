@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_OUT
 		printf("Accepted connection from %s\n", s);
 #endif
-		syslog(LOG_DEBUG, "Accepted connection from %s\n", s);
+		syslog(LOG_DEBUG, "Accepted connection from %s", s);
 		
 		// write received data to file FOUT
 		FILE *fout = fopen(FOUT, "a");
@@ -133,31 +133,39 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_OUT
 			printf("Error creating file %s\n", FOUT);
 #endif
-			syslog(LOG_ERR, "Error creating file %s\n", FOUT);
+			syslog(LOG_ERR, "Error creating file %s", FOUT);
+			close(new_fd);
+			continue;
 		}
 		
 		// loop while we get data
 		char buf[1024]; // Buffer for incoming data
 		ssize_t bytes_received;
 		int ret;
-		bool complete = false;
 		
-		while (((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0) && (!complete))
+		while ((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0)
 		{
+#ifdef DEBUG_OUT
+			//printf("received %s\n", buf);
+			printf("received %.*s\n", (int)bytes_received, buf);
+#endif
 			ret = fwrite(buf, 1, bytes_received, fout);
-			if (ret == -1)
+			if (ret != (size_t)bytes_received)
 			{
 				// writing to file failed
-				return(-1);
+				syslog(LOG_ERR, "writing to file %s failed", FOUT);
+				// return(-1);
+				continue;
 			}
+			
+			// flush to disk if newline is found
 			if (memchr(buf, '\n', bytes_received) != NULL)
 			{
 				// packet is complete
-				complete = true;
-				fclose(fout);
+				fflush(fout);
 			}
+			fclose(fout);
 		}
-		
 		
 		if (bytes_received == -1)
 		{
