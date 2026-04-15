@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -17,9 +18,44 @@
 #define DEBUG_OUT
 #define FOUT "/var/tmp/aesdsocketdata"
 
+bool caught_sigint  = false;
+bool caught_sigterm = false;
+
+static void signal_handler(int signal_number)
+{
+	if (signal_number == SIGINT)
+	{
+		caught_sigint = true;
+		printf("Caught SIGINT\n");
+	}
+	else if (signal_number == SIGTERM)
+	{
+		caught_sigterm = true;
+		printf("Caught SIGTERM\n");
+	}
+	else
+	{
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	openlog(NULL, 0, LOG_USER);
+	
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(struct sigaction));
+	sa.sa_handler = signal_handler;
+
+	if (sigaction(SIGINT, &sa, NULL) != 0) 
+	{
+		printf("sigaction SIGINT");
+		return -1;
+	}
+	if (sigaction(SIGTERM, &sa, NULL) != 0) 
+	{
+		printf("sigaction SIGTERM");
+		return -1;
+	}
 
 	int sockfd, new_fd;
 	int status;
@@ -94,7 +130,7 @@ int main(int argc, char *argv[])
 	
 	printf("Server: waiting for connections on port %s...\n", PORT);
 	
-	while(1)
+	while(!caught_sigint && !caught_sigterm)
 	{
 		// 5. Accept a connection
 		// accept
@@ -102,8 +138,12 @@ int main(int argc, char *argv[])
 		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
 		if (new_fd == -1) 
 		{
-			close(sockfd);
-			return -1;
+			if (caught_sigint || caught_sigterm) 
+			{
+				break; // Exit the while loop normally
+			}
+    		close(sockfd);
+			continue;
 		}
 	
 		// send/recv
@@ -162,28 +202,27 @@ int main(int argc, char *argv[])
 			{
 				// packet is complete
 				fflush(fout);
-			}
 
-            // Send the full file content back to the client
-			rewind(fout); // Go to the start of the file
-			char send_buf[1024];
-			size_t bytes_read;
-                
-			while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
-			{
-				if (send(new_fd, send_buf, bytes_read, 0) == -1) 
+				// Send the full file content back to the client
+				rewind(fout); // Go to the start of the file
+				char send_buf[1024];
+				size_t bytes_read;
+					
+				while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
 				{
-#ifdef DEBUG_OUT
-					printf("failed sending file content back to sender");
-#endif
-					syslog(LOG_ERR, "failed sending file content back to sender");
-					break;
+					if (send(new_fd, send_buf, bytes_read, 0) == -1) 
+					{
+	#ifdef DEBUG_OUT
+						printf("failed sending file content back to sender");
+	#endif
+						syslog(LOG_ERR, "failed sending file content back to sender");
+						break;
+					}
 				}
+					
+				// Seek back to the end so the next append happens correctly
+				fseek(fout, 0, SEEK_END);
 			}
-                
-			// Seek back to the end so the next append happens correctly
-			fseek(fout, 0, SEEK_END);
-//			fclose(fout);
 		}
 		
 		if (bytes_received == -1)
@@ -194,6 +233,7 @@ int main(int argc, char *argv[])
 		}
 
 		// Cleanup
+		fclose(fout);
 		close(new_fd);
 		syslog(LOG_DEBUG, "Closed connection from %s", s);
 	}
