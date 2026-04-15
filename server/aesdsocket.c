@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
 
 		// Cleanup
 		close(new_fd);
+		syslog(LOG_DEBUG, "Closed connection from %s", s);
 	}
 	
 #ifdef DEBUG_OUT
