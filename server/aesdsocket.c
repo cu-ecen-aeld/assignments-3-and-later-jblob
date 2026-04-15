@@ -154,8 +154,10 @@ int main(int argc, char *argv[])
 			{
 				// packet is complete
 				complete = true;
+				fclose(fout);
 			}
 		}
+		
 		
 		if (bytes_received == -1)
 		{
