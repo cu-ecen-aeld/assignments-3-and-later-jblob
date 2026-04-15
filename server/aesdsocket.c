@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,6 +15,7 @@
 #define PORT "9000"
 
 #define DEBUG_OUT
+#define FOUT "/var/tmp/aesdsocketdata"
 
 int main(int argc, char *argv[])
 {
@@ -123,6 +125,44 @@ int main(int argc, char *argv[])
 		printf("Accepted connection from %s\n", s);
 #endif
 		syslog(LOG_DEBUG, "Accepted connection from %s\n", s);
+		
+		// write received data to file FOUT
+		FILE *fout = fopen(FOUT, "a");
+		if (fout == NULL)
+		{
+#ifdef DEBUG_OUT
+			printf("Error creating file %s\n", FOUT);
+#endif
+			syslog(LOG_ERR, "Error creating file %s\n", FOUT);
+		}
+		
+		// loop while we get data
+		char buf[1024]; // Buffer for incoming data
+		ssize_t bytes_received;
+		int ret;
+		bool complete = false;
+		
+		while (((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0) && (!complete))
+		{
+			ret = fwrite(buf, 1, bytes_received, fout);
+			if (ret == -1)
+			{
+				// writing to file failed
+				return(-1);
+			}
+			if (memchr(buf, '\n', bytes_received) != NULL)
+			{
+				// packet is complete
+				complete = true;
+			}
+		}
+		
+		if (bytes_received == -1)
+		{
+#ifdef DEBUG_OUT
+			printf("error in recv\n");
+#endif
+		}
 
 		// Cleanup
 		close(new_fd);
