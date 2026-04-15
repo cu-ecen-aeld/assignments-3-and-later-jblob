@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 		syslog(LOG_DEBUG, "Accepted connection from %s", s);
 		
 		// write received data to file FOUT
-		FILE *fout = fopen(FOUT, "a");
+		FILE *fout = fopen(FOUT, "a+");
 		if (fout == NULL)
 		{
 #ifdef DEBUG_OUT
@@ -146,8 +146,7 @@ int main(int argc, char *argv[])
 		while ((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0)
 		{
 #ifdef DEBUG_OUT
-			//printf("received %s\n", buf);
-			printf("received %.*s\n", (int)bytes_received, buf);
+			//printf("received %.*s\n", (int)bytes_received, buf);
 #endif
 			ret = fwrite(buf, 1, bytes_received, fout);
 			if (ret != (size_t)bytes_received)
@@ -155,7 +154,7 @@ int main(int argc, char *argv[])
 				// writing to file failed
 				syslog(LOG_ERR, "writing to file %s failed", FOUT);
 				// return(-1);
-				continue;
+				break;
 			}
 			
 			// flush to disk if newline is found
@@ -164,7 +163,27 @@ int main(int argc, char *argv[])
 				// packet is complete
 				fflush(fout);
 			}
-			fclose(fout);
+
+            // Send the full file content back to the client
+			rewind(fout); // Go to the start of the file
+			char send_buf[1024];
+			size_t bytes_read;
+                
+			while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
+			{
+				if (send(new_fd, send_buf, bytes_read, 0) == -1) 
+				{
+#ifdef DEBUG_OUT
+					printf("failed sending file content back to sender");
+#endif
+					syslog(LOG_ERR, "failed sending file content back to sender");
+					break;
+				}
+			}
+                
+			// Seek back to the end so the next append happens correctly
+			fseek(fout, 0, SEEK_END);
+//			fclose(fout);
 		}
 		
 		if (bytes_received == -1)
