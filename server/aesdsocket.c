@@ -26,12 +26,14 @@ static void signal_handler(int signal_number)
 	if (signal_number == SIGINT)
 	{
 		caught_sigint = true;
-		printf("Caught SIGINT\n");
+		// printf("Caught SIGINT\n");
+		syslog(LOG_DEBUG, "Caught signal, exiting");
 	}
 	else if (signal_number == SIGTERM)
 	{
 		caught_sigterm = true;
-		printf("Caught SIGTERM\n");
+		// printf("Caught SIGTERM\n");
+		syslog(LOG_DEBUG, "Caught signal, exiting");
 	}
 	else
 	{
