@@ -34,7 +34,6 @@ int main(int argc, char *argv[])
 	hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
 
 	// 1. Get address information
-//	getaddrinfo("www.google.de", PORT, &hints, &res);
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
 	if (status != 0)
 	{
@@ -93,38 +92,46 @@ int main(int argc, char *argv[])
 	
 	printf("Server: waiting for connections on port %s...\n", PORT);
 	
-	// 5. Accept a connection
-	// accept
-	addr_size = sizeof their_addr;
-	new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-	if (new_fd == -1) 
+	while(1)
 	{
-		close(sockfd);
-		return -1;
+		// 5. Accept a connection
+		// accept
+		addr_size = sizeof their_addr;
+		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+		if (new_fd == -1) 
+		{
+			close(sockfd);
+			return -1;
+		}
+	
+		// send/recv
+		// 6. Get the printable IP address
+		void *addr;
+		if (their_addr.ss_family == AF_INET) // IPv4
+		{
+			struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
+			addr = &(ipv4->sin_addr);
+		} 
+		else // IPv6
+		{
+			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&their_addr;
+			addr = &(ipv6->sin6_addr);
+		}
+
+		inet_ntop(their_addr.ss_family, addr, s, sizeof s);
+#ifdef DEBUG_OUT
+		printf("Accepted connection from %s\n", s);
+#endif
+		syslog(LOG_DEBUG, "Accepted connection from %s\n", s);
+
+		// Cleanup
+		close(new_fd);
 	}
 	
-	// send/recv
-	// 6. Get the printable IP address
-	void *addr;
-	if (their_addr.ss_family == AF_INET) // IPv4
-	{
-		struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
-		addr = &(ipv4->sin_addr);
-	} 
-	else // IPv6
-	{
-		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&their_addr;
-		addr = &(ipv6->sin6_addr);
-	}
-
-	inet_ntop(their_addr.ss_family, addr, s, sizeof s);
 #ifdef DEBUG_OUT
-	printf("Accepted connection from %s\n", s);
+	printf("server shutdown\n");
 #endif
-	syslog(LOG_DEBUG, "Accepted connection from %s\n", s);
-
-	// Cleanup
-	close(new_fd);
+	
 	close(sockfd);
 	
 	
