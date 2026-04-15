@@ -13,20 +13,12 @@
 #define BACKLOG 20
 #define PORT "9000"
 
+#define DEBUG_OUT
 
 int main(int argc, char *argv[])
 {
 	openlog(NULL, 0, LOG_USER);
-/*
-if ((status = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
-	fprintf(stderr, "gai error: %s\n", gai_strerror(status));
-	exit(1);
-}
 
-
-// ... do everything until you don't need servinfo anymore ....
-
-*/	
 	int sockfd, new_fd;
 	int status;
 
@@ -60,9 +52,18 @@ if ((status = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
 		return -1;
 	}
 
-	// printf("sockfd=%d\n", sockfd); // to avoid compiler error due to -Werror
-	
-	// syslog(LOG_DEBUG, "Socket started\n");
+#ifdef DEBUG_OUT
+	printf("Socket started\n");
+#endif
+
+	int yes = 1;
+	status = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+	if (status == -1) 
+	{
+		close(sockfd);
+		freeaddrinfo(servinfo);
+		return -1;
+	}
 	
 	// 3. Bind to the port (Essential for servers!)
 	// bind
@@ -117,7 +118,10 @@ if ((status = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
 	}
 
 	inet_ntop(their_addr.ss_family, addr, s, sizeof s);
+#ifdef DEBUG_OUT
 	printf("Accepted connection from %s\n", s);
+#endif
+	syslog(LOG_DEBUG, "Accepted connection from %s\n", s);
 
 	// Cleanup
 	close(new_fd);
@@ -128,10 +132,3 @@ if ((status = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
 	
 	return 0;
 }
-
-
-/*
- b. Opens a stream socket bound to port 9000, failing and returning -1 if any of the socket connection steps fail.
- c. Listens for and accepts a connection
- d. Logs message to the syslog “Accepted connection from xxx” where XXXX is the IP address of the connected client. 
- */
