@@ -18,55 +18,24 @@
 #define DEBUG_OUT
 #define FOUT "/var/tmp/aesdsocketdata"
 
-bool caught_sigint  = false;
-bool caught_sigterm = false;
+volatile sig_atomic_t caught_sig  = false;
 
 static void signal_handler(int signal_number)
 {
-	int status;
-	if (signal_number == SIGINT)
+	if ((signal_number == SIGINT) || (signal_number == SIGTERM))
 	{
-		caught_sigint = true;
-		syslog(LOG_DEBUG, "Caught signal, exiting");
-		
-		status = remove(FOUT);
-		if( status != 0 )
-		{
-			syslog(LOG_ERR, "error deleting file %s\n", FOUT);
-		}
-	}
-	else if (signal_number == SIGTERM)
-	{
-		caught_sigterm = true;
-		syslog(LOG_DEBUG, "Caught signal, exiting");
-
-		status = remove(FOUT);
-		if( status != 0 )
-		{
-			syslog(LOG_ERR, "error deleting file %s\n", FOUT);
-		}
-	}
-	else
-	{
+		caught_sig = true;
 	}
 }
 
 int main(int argc, char *argv[])
 {
+	bool run_as_daemon = false;
 	if (argc > 1)
 	{
 		if (strcmp(argv[1], "-d") == 0)
 		{
-#ifdef DEBUG_OUT
-			printf("Programm now running in background\n");
-#endif
-			// daemon(noch_im_verzeichnis_bleiben, ausgabe_behalten)
-			// 0, 0 bedeutet: wechsle nach "/" und leite stdout/stderr nach /dev/null um
-			if (daemon(0, 0) == -1) 
-			{
-				syslog(LOG_ERR, "<AESDSOCKET>error starting aesdsocket daemon");
-				return 1;
-			}
+			run_as_daemon = true;
 		}
 	}
 
@@ -152,6 +121,20 @@ int main(int argc, char *argv[])
 	// connect
 	// A server waits (listen/accept). Only a client initiates a connect()
 	//connect(sockfd, servinfo->ai_addr, servinfo->ai_addrlen);
+
+	if (run_as_daemon)
+	{
+#ifdef DEBUG_OUT
+		printf("Programm now running in background\n");
+#endif
+		// daemon(noch_im_verzeichnis_bleiben, ausgabe_behalten)
+		// 0, 0 bedeutet: wechsle nach "/" und leite stdout/stderr nach /dev/null um
+		if (daemon(0, 0) == -1) 
+		{
+			syslog(LOG_ERR, "<AESDSOCKET>error starting aesdsocket daemon");
+			return 1;
+		}
+	}
 	
 	// 4. Listen for incoming connections
 	// listen
@@ -167,7 +150,7 @@ int main(int argc, char *argv[])
 	syslog(LOG_INFO, "<AESDSOCKET>Server: waiting for connections on port %s", PORT);
 #endif
 	
-	while(!caught_sigint && !caught_sigterm)
+	while(!caught_sig)
 	{
 		// 5. Accept a connection
 		// accept
@@ -175,11 +158,11 @@ int main(int argc, char *argv[])
 		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
 		if (new_fd == -1) 
 		{
-			if (caught_sigint || caught_sigterm) 
+			if (caught_sig) 
 			{
 				break; // Exit the while loop normally
 			}
-			close(sockfd);
+			// close(sockfd); // dont close socket here - we afterwards call continue and accept further connections !
 			continue;
 		}
 	
@@ -263,14 +246,19 @@ int main(int argc, char *argv[])
 		close(new_fd);
 		syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
 	}
+
+	syslog(LOG_DEBUG, "Caught signal, exiting");
+	status = remove(FOUT);
+	if( status != 0 )
+	{
+		syslog(LOG_ERR, "error deleting file %s\n", FOUT);
+	}
 	
 #ifdef DEBUG_OUT
 	syslog(LOG_INFO, "<AESDSOCKET>server shutdown");
 #endif
 	
 	close(sockfd);
-	
-	
 	closelog();
 	
 	return 0;
