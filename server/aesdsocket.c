@@ -27,7 +27,6 @@ static void signal_handler(int signal_number)
 	if (signal_number == SIGINT)
 	{
 		caught_sigint = true;
-		// printf("Caught SIGINT\n");
 		syslog(LOG_DEBUG, "Caught signal, exiting");
 		
 		status = remove(FOUT);
@@ -39,7 +38,6 @@ static void signal_handler(int signal_number)
 	else if (signal_number == SIGTERM)
 	{
 		caught_sigterm = true;
-		// printf("Caught SIGTERM\n");
 		syslog(LOG_DEBUG, "Caught signal, exiting");
 
 		status = remove(FOUT);
@@ -55,6 +53,23 @@ static void signal_handler(int signal_number)
 
 int main(int argc, char *argv[])
 {
+	if (argc > 1)
+	{
+		if (strcmp(argv[1], "-d") == 0)
+		{
+#ifdef DEBUG_OUT
+			printf("Programm now running in background\n");
+#endif
+			// daemon(noch_im_verzeichnis_bleiben, ausgabe_behalten)
+			// 0, 0 bedeutet: wechsle nach "/" und leite stdout/stderr nach /dev/null um
+			if (daemon(0, 0) == -1) 
+			{
+				syslog(LOG_ERR, "<AESDSOCKET>error starting aesdsocket daemon");
+				return 1;
+			}
+		}
+	}
+
 	openlog(NULL, 0, LOG_USER);
 	
 	struct sigaction sa;
@@ -63,12 +78,12 @@ int main(int argc, char *argv[])
 
 	if (sigaction(SIGINT, &sa, NULL) != 0) 
 	{
-		printf("sigaction SIGINT");
+		syslog(LOG_ERR, "<AESDSOCKET>error in sigaction SIGINT");
 		return -1;
 	}
 	if (sigaction(SIGTERM, &sa, NULL) != 0) 
 	{
-		printf("sigaction SIGTERM");
+		syslog(LOG_ERR, "<AESDSOCKET>error in sigaction SIGTERM");
 		return -1;
 	}
 
@@ -90,7 +105,8 @@ int main(int argc, char *argv[])
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
 	if (status != 0)
 	{
-		fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+		// fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+		syslog(LOG_ERR, "<AESDSOCKET>error in getaddrinfo %s", gai_strerror(status));
 		return -1;
 	}
 	// servinfo now points to a linked list of 1 or more
@@ -100,18 +116,20 @@ int main(int argc, char *argv[])
 	sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 	if (sockfd == -1)
 	{
+		syslog(LOG_ERR, "<AESDSOCKET>error in socket creation");
 		freeaddrinfo(servinfo);
 		return -1;
 	}
 
 #ifdef DEBUG_OUT
-	printf("Socket started\n");
+	syslog(LOG_INFO, "Socket started");
 #endif
 
 	int yes = 1;
 	status = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 	if (status == -1) 
 	{
+		syslog(LOG_ERR, "<AESDSOCKET>error in setsockopt");
 		close(sockfd);
 		freeaddrinfo(servinfo);
 		return -1;
@@ -123,6 +141,7 @@ int main(int argc, char *argv[])
 	status = bind(sockfd, servinfo->ai_addr, servinfo->ai_addrlen);
 	if (status == -1)
 	{
+		syslog(LOG_ERR, "<AESDSOCKET>error in bind");
 		close(sockfd);
 		freeaddrinfo(servinfo);
 		return -1;
@@ -139,11 +158,14 @@ int main(int argc, char *argv[])
 	status = listen(sockfd, BACKLOG);
 	if (status == -1)
 	{
+		syslog(LOG_ERR, "<AESDSOCKET>error in listen");
 		close(sockfd);
 		return -1;
 	}
-	
-	printf("Server: waiting for connections on port %s...\n", PORT);
+
+#ifdef DEBUG_OUT	
+	syslog(LOG_INFO, "<AESDSOCKET>Server: waiting for connections on port %s", PORT);
+#endif
 	
 	while(!caught_sigint && !caught_sigterm)
 	{
@@ -157,7 +179,7 @@ int main(int argc, char *argv[])
 			{
 				break; // Exit the while loop normally
 			}
-    		close(sockfd);
+			close(sockfd);
 			continue;
 		}
 	
@@ -176,19 +198,14 @@ int main(int argc, char *argv[])
 		}
 
 		inet_ntop(their_addr.ss_family, addr, s, sizeof s);
-#ifdef DEBUG_OUT
-		printf("Accepted connection from %s\n", s);
-#endif
-		syslog(LOG_DEBUG, "Accepted connection from %s", s);
+
+		syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
 		
 		// write received data to file FOUT
 		FILE *fout = fopen(FOUT, "a+");
 		if (fout == NULL)
 		{
-#ifdef DEBUG_OUT
-			printf("Error creating file %s\n", FOUT);
-#endif
-			syslog(LOG_ERR, "Error creating file %s", FOUT);
+			syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
 			close(new_fd);
 			continue;
 		}
@@ -200,14 +217,11 @@ int main(int argc, char *argv[])
 		
 		while ((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0)
 		{
-#ifdef DEBUG_OUT
-			//printf("received %.*s\n", (int)bytes_received, buf);
-#endif
 			ret = fwrite(buf, 1, bytes_received, fout);
 			if (ret != (size_t)bytes_received)
 			{
 				// writing to file failed
-				syslog(LOG_ERR, "writing to file %s failed", FOUT);
+				syslog(LOG_ERR, "<AESDSOCKET>writing to file %s failed", FOUT);
 				// return(-1);
 				break;
 			}
@@ -227,10 +241,7 @@ int main(int argc, char *argv[])
 				{
 					if (send(new_fd, send_buf, bytes_read, 0) == -1) 
 					{
-	#ifdef DEBUG_OUT
-						printf("failed sending file content back to sender");
-	#endif
-						syslog(LOG_ERR, "failed sending file content back to sender");
+						syslog(LOG_ERR, "<AESDSOCKET>failed sending file content back to sender");
 						break;
 					}
 				}
@@ -243,18 +254,18 @@ int main(int argc, char *argv[])
 		if (bytes_received == -1)
 		{
 #ifdef DEBUG_OUT
-			printf("error in recv\n");
+			syslog(LOG_ERR, "<AESDSOCKET>error in recv");
 #endif
 		}
 
 		// Cleanup
 		fclose(fout);
 		close(new_fd);
-		syslog(LOG_DEBUG, "Closed connection from %s", s);
+		syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
 	}
 	
 #ifdef DEBUG_OUT
-	printf("server shutdown\n");
+	syslog(LOG_INFO, "<AESDSOCKET>server shutdown");
 #endif
 	
 	close(sockfd);
