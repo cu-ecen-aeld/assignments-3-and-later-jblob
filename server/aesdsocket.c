@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef DEBUG_OUT
-	syslog(LOG_INFO, "Socket started");
+	syslog(LOG_INFO, "<AESDSOCKET>Socket started");
 #endif
 
 	int yes = 1;
@@ -247,11 +247,11 @@ int main(int argc, char *argv[])
 		syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
 	}
 
-	syslog(LOG_DEBUG, "Caught signal, exiting");
+	syslog(LOG_DEBUG, "<AESDSOCKET>Caught signal, exiting");
 	status = remove(FOUT);
 	if( status != 0 )
 	{
-		syslog(LOG_ERR, "error deleting file %s\n", FOUT);
+		syslog(LOG_ERR, "<AESDSOCKET>error deleting file %s\n", FOUT);
 	}
 	
 #ifdef DEBUG_OUT
