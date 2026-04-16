@@ -1,0 +1,19 @@
+#! /bin/sh
+# Start/stop the aesdsocket daemon.
+
+case "$1" in
+	start)
+		echo "Starting aesd socket server"
+		start-stop-daemon -S -n aesdsocket -d 
+		;;
+	stop)
+		echo "Stopping aesd socket server"
+		start-stop-daemon -K -n aesdsocket
+		;;
+	*)
+		echo "Usage: $0 {start|stop}"
+        exit 1
+        ;;
+esac
+
+exit 0
