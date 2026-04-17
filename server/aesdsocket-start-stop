@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/sh
 # Start/stop the aesdsocket daemon.
 
 case "$1" in
