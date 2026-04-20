@@ -6,7 +6,7 @@ on:
         branches:
             - '*'
 jobs:
-    full-test:
+    full-test-assignment5buildroot:
         container: cuaesd/aesd-autotest:24-assignment5-buildroot
         runs-on: self-hosted
         timeout-minutes: 120
@@ -16,7 +16,7 @@ jobs:
             run : git submodule update --init --recursive
           - name: Run unit test
             run: ./unit-test.sh
-    full-test:
+    full-testassignemt5final:
         container: cuaesd/aesd-autotest:24-assignment5
         runs-on: self-hosted
         steps:
