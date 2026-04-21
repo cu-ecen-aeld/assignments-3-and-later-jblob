@@ -25,5 +25,7 @@ jobs:
           - uses: actions/checkout@v2
           - name: Checkout submodules
             run : git submodule update --init --recursive
+          - name: Install sshpass
+            run:  apt-get install -y sshpass
           - name: Run full test
             run: ./full-test.sh
