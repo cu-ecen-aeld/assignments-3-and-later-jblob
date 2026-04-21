@@ -9,7 +9,9 @@ on:
 jobs:
   # Job 1: Build the Buildroot image
   full-test-assignment5buildroot:
-    container: cuaesd/aesd-autotest:24-assignment5-buildroot
+    container: 
+        image: cuaesd/aesd-autotest:24-assignment5-buildroot
+        options: --user 1000:1000
     runs-on: self-hosted
     timeout-minutes: 120
     steps:
