@@ -8,28 +8,27 @@ on:
 
 jobs:
   # Job 1: Build the Buildroot image
-  full-test-assignment5buildroot:
-    container: 
-        image: cuaesd/aesd-autotest:24-assignment5-buildroot
-        options: --user 1000:1000
+full-test-assignment5buildroot:
+    container: cuaesd/aesd-autotest:24-assignment5-buildroot
     runs-on: self-hosted
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v2
-      
       - name: Checkout submodules
         run: git submodule update --init --recursive
-        
       - name: Cleanup previous runs
         run: killall -9 qemu-system-aarch64 || true
-        
       - name: Install sshpass
         run: |
           apt-get update
           apt-get install -y sshpass
-          
       - name: Run unit test
         run: ./unit-test.sh
+      
+      # THIS STEP FIXES THE "PERMISSION DENIED" FOR THE NEXT RUN
+      - name: Fix workspace permissions
+        if: always()
+        run: chown -R 1000:1000 .
 
   # Job 2: Run the full QEMU integration test
   full-test-assignment5final:
