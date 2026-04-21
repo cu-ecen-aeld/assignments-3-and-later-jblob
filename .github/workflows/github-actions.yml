@@ -1,14 +1,11 @@
 name: assignment-test
 on:
   push:
-    tags-ignore:
-      - '*'
     branches:
       - '*'
 
 jobs:
-  # Job 1: Build the Buildroot image
-full-test-assignment5buildroot:
+  full-test-assignment5buildroot:
     container: cuaesd/aesd-autotest:24-assignment5-buildroot
     runs-on: self-hosted
     timeout-minutes: 120
@@ -24,13 +21,11 @@ full-test-assignment5buildroot:
           apt-get install -y sshpass
       - name: Run unit test
         run: ./unit-test.sh
-      
-      # THIS STEP FIXES THE "PERMISSION DENIED" FOR THE NEXT RUN
       - name: Fix workspace permissions
         if: always()
         run: chown -R 1000:1000 .
 
-full-test-assignment5final:
+  full-test-assignment5final:
     needs: full-test-assignment5buildroot
     runs-on: self-hosted
     steps:
