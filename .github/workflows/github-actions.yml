@@ -7,30 +7,17 @@ on:
       - '*'
 
 jobs:
+  # Job 1: Build the Buildroot image
   full-test-assignment5buildroot:
     container: cuaesd/aesd-autotest:24-assignment5-buildroot
     runs-on: self-hosted
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v2
+      
       - name: Checkout submodules
         run: git submodule update --init --recursive
-      - name: Cleanup previous runs
-        run: killall -9 qemu-system-aarch64 || true
-      - name: Install sshpass
-        run: |
-          apt-get update
-          apt-get install -y sshpass
-      - name: Run unit test
-        run: ./unit-test.sh
-
-full-test-assignment5final:
-    needs: full-test-assignment5buildroot
-    container: cuaesd/aesd-autotest:24-assignment5
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v2
-      
+        
       - name: Cleanup previous runs
         run: killall -9 qemu-system-aarch64 || true
         
@@ -39,11 +26,28 @@ full-test-assignment5final:
           apt-get update
           apt-get install -y sshpass
           
-      - name: Run full test
+      - name: Run unit test
+        run: ./unit-test.sh
+
+  # Job 2: Run the full QEMU integration test
+  full-test-assignment5final:
+    needs: full-test-assignment5buildroot
+    # We run this directly on the self-hosted host (Ubuntu 22) 
+    # to ensure QEMU and the test script share the same localhost.
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+        
+      - name: Cleanup previous runs
+        run: killall -9 qemu-system-aarch64 || true
+        
+      - name: Install dependencies on host
         run: |
-          # This finds the 'gateway' IP (your Ubuntu host) from inside Docker
-          export SSH_TARGET=$(ip route | grep default | awk '{print $3}')
-          echo "Host IP is $SSH_TARGET"
+          sudo apt-get update
+          sudo apt-get install -y sshpass
           
-          # Run the test
-          ./full-test.sh
+      - name: Run full test
+        run: ./full-test.sh
