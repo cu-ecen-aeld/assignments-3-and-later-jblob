@@ -1,35 +1,42 @@
 name: assignment-test
 on:
-    push:
-        tags-ignore:
-            - '*'
-        branches:
-            - '*'
+  push:
+    tags-ignore:
+      - '*'
+    branches:
+      - '*'
+
 jobs:
-    full-test-assignment5buildroot:
-        container: cuaesd/aesd-autotest:24-assignment5-buildroot
-        runs-on: self-hosted
-        timeout-minutes: 120
-        steps:
-          - uses: actions/checkout@v2
-          - name: Checkout submodules
-            run : git submodule update --init --recursive
-          - name: Install sshpass
-            run:  |
-              apt-get update
-              apt-get install -y sshpass
-          - name: Run unit test
-            run: ./unit-test.sh
-    full-testassignemt5final:
-        container: cuaesd/aesd-autotest:24-assignment5
-        runs-on: self-hosted
-        steps:
-          - uses: actions/checkout@v2
-          - name: Checkout submodules
-            run : git submodule update --init --recursive
-          - name: Install sshpass
-            run:  |
-              apt-get update
-              apt-get install -y sshpass
-          - name: Run full test
-            run: ./full-test.sh
+  full-test-assignment5buildroot:
+    container: cuaesd/aesd-autotest:24-assignment5-buildroot
+    runs-on: self-hosted
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Cleanup previous runs
+        run: killall -9 qemu-system-aarch64 || true
+      - name: Install sshpass
+        run: |
+          apt-get update
+          apt-get install -y sshpass
+      - name: Run unit test
+        run: ./unit-test.sh
+
+  full-test-assignment5final:
+    needs: full-test-assignment5buildroot  # Ensures they don't run at the same time
+    container: cuaesd/aesd-autotest:24-assignment5
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Cleanup previous runs
+        run: killall -9 qemu-system-aarch64 || true
+      - name: Install sshpass
+        run: |
+          apt-get update
+          apt-get install -y sshpass
+      - name: Run full test
+        run: ./full-test.sh
