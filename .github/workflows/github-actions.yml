@@ -30,25 +30,20 @@ full-test-assignment5buildroot:
         if: always()
         run: chown -R 1000:1000 .
 
-  # Job 2: Run the full QEMU integration test
-  full-test-assignment5final:
+full-test-assignment5final:
     needs: full-test-assignment5buildroot
-    # We run this directly on the self-hosted host (Ubuntu 22) 
-    # to ensure QEMU and the test script share the same localhost.
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
-      
       - name: Checkout submodules
         run: git submodule update --init --recursive
-        
       - name: Cleanup previous runs
-        run: killall -9 qemu-system-aarch64 || true
-        
+        run: sudo killall -9 qemu-system-aarch64 || true
+      - name: Fix workspace permissions
+        run: sudo chown -R $USER:$USER .
       - name: Install dependencies on host
         run: |
           sudo apt-get update
           sudo apt-get install -y sshpass
-          
       - name: Run full test
         run: ./full-test.sh
