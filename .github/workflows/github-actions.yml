@@ -15,7 +15,9 @@ jobs:
           - name: Checkout submodules
             run : git submodule update --init --recursive
           - name: Install sshpass
-            run:  apt-get install -y sshpass
+            run:  |
+              apt-get update
+              apt-get install -y sshpass
           - name: Run unit test
             run: ./unit-test.sh
     full-testassignemt5final:
@@ -26,6 +28,8 @@ jobs:
           - name: Checkout submodules
             run : git submodule update --init --recursive
           - name: Install sshpass
-            run:  apt-get install -y sshpass
+            run:  |
+              apt-get update
+              apt-get install -y sshpass
           - name: Run full test
             run: ./full-test.sh
