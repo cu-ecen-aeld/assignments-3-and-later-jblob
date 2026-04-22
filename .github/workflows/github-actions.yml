@@ -31,8 +31,8 @@ jobs:
       - name: Force HTTPS for Git
         run: |
           git config --global url."https://".insteadOf git://
-          git config --global url."https://github.com/mirror/busybox.git".insteadOf https://busybox.net/busybox.git/
-          
+          git config --global url."https://github.com/mirror/busybox.git".insteadOf https://busybox.net/busybox.git
+          git config --global url."https://github.com/mirror/busybox.git".insteadOf http://busybox.net/busybox.git          
       - name: Run full test
         run: ./full-test.sh
       
