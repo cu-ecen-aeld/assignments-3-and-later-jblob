@@ -1,4 +1,24 @@
-full-test-assignment3:
+name: assignment-test
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  unit-test:
+    container: cuaesd/aesd-autotest:24-unit-test
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      - name: Run unit test
+        run: ./unit-test.sh
+      - name: Fix workspace permissions
+        if: always()
+        run: chown -R 1000:1000 .
+
+  full-test-assignment3:
     container: cuaesd/aesd-autotest:24-assignment3
     runs-on: self-hosted
     needs: unit-test
@@ -7,6 +27,7 @@ full-test-assignment3:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       
+      # This step fixes the "Error 128" by forcing kernel.org to use HTTPS
       - name: Force HTTPS for Git
         run: git config --global url."https://".insteadOf git://
 
