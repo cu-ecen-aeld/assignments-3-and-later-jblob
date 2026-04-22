@@ -29,8 +29,10 @@ jobs:
       
       # This step fixes the "Error 128" by forcing kernel.org to use HTTPS
       - name: Force HTTPS for Git
-        run: git config --global url."https://".insteadOf git://
-
+        run: |
+          git config --global url."https://".insteadOf git://
+          git config --global url."https://github.com/mirror/busybox.git".insteadOf https://busybox.net/busybox.git/
+          
       - name: Run full test
         run: ./full-test.sh
       
