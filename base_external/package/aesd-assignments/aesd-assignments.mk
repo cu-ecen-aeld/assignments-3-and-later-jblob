@@ -31,14 +31,16 @@ define AESD_ASSIGNMENTS_INSTALL_TARGET_CMDS
 	$(INSTALL) -d -m 0755 $(TARGET_DIR)/usr/bin/conf/
 	$(INSTALL) -m 0644 $(@D)/conf/* $(TARGET_DIR)/usr/bin/conf/
 
-	# 2. Binaries and Scripts (Using the finder-app directory)
+	# 2. Binaries and Scripts
 	$(INSTALL) -m 0755 $(@D)/finder-app/writer $(TARGET_DIR)/usr/bin
 	$(INSTALL) -m 0755 $(@D)/finder-app/finder.sh $(TARGET_DIR)/usr/bin
 	$(INSTALL) -m 0755 $(@D)/finder-app/finder-test.sh $(TARGET_DIR)/usr/bin
 	
-	# 3. The Helper Script (This is usually in the root or finder-app)
-	# If this fails, check if it's in $(@D)/finder-app/script-helpers.sh
-	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/shared/script-helpers.sh $(TARGET_DIR)/usr/bin
+	# 3. The Helpers & Test Script
+	# We'll grab these from the finder-app directory where you likely kept them
+	# If they are in the root of your repo, use $(@D)/filename.sh
+	$(INSTALL) -m 0755 $(@D)/finder-app/script-helpers.sh $(TARGET_DIR)/usr/bin
+	$(INSTALL) -m 0755 $(@D)/finder-app/assignment-1-test.sh $(TARGET_DIR)/usr/bin
 
 	# 4. Socket Server
 	$(INSTALL) -m 0755 $(@D)/server/aesdsocket $(TARGET_DIR)/usr/bin
