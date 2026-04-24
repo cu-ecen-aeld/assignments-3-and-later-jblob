@@ -82,7 +82,7 @@ full-test-assignment5buildroot:
         if: always()
         run: chown -R 1000:1000 .
 
-  full-test-assignment5final:
+full-test-assignment5final:
     needs: full-test-assignment5buildroot
     runs-on: self-hosted
     steps:
