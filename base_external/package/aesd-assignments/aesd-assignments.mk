@@ -38,15 +38,15 @@ define AESD_ASSIGNMENTS_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 0644 $(@D)/conf/* $(TARGET_DIR)/usr/conf/
 
 	# 4. Binary and Helper installs
-	$(INSTALL) -m 0755 $(@D)/finder-app/writer $(TARGET_DIR)/usr/bin/
-	$(INSTALL) -m 0755 $(@D)/finder-app/finder.sh $(TARGET_DIR)/usr/bin/
-	$(INSTALL) -m 0755 $(@D)/finder-app/finder-test.sh $(TARGET_DIR)/usr/bin/
-	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/assignment4-buildroot/assignment-1-test.sh $(TARGET_DIR)/usr/bin/
-	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/shared/script-helpers $(TARGET_DIR)/usr/bin/
+	$(INSTALL) -m 0755 $(@D)/finder-app/writer $(TARGET_DIR)/usr/bin
+	$(INSTALL) -m 0755 $(@D)/finder-app/finder.sh $(TARGET_DIR)/usr/bin
+	$(INSTALL) -m 0755 $(@D)/finder-app/finder-test.sh $(TARGET_DIR)/usr/bin
+	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/assignment1/assignment-1-test.sh $(TARGET_DIR)/usr/bin
+	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/shared/script-helpers.sh $(TARGET_DIR)/usr/bin
 
 	# 5. Socket Server
-	$(INSTALL) -m 0755 $(@D)/server/aesdsocket $(TARGET_DIR)/usr/bin/
-	$(INSTALL) -d -m 0755 $(TARGET_DIR)/etc/init.d/
+	$(INSTALL) -m 0755 $(@D)/server/aesdsocket $(TARGET_DIR)/usr/bin
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/etc/init.d
 	$(INSTALL) -m 0755 $(@D)/server/aesdsocket-start-stop $(TARGET_DIR)/etc/init.d/S99aesdsocket
 endef
 
