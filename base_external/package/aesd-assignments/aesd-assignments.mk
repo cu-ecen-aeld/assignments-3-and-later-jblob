@@ -25,26 +25,21 @@ endef
 
 # TODO add your writer, finder and finder-test utilities/scripts to the installation steps below
 define AESD_ASSIGNMENTS_INSTALL_TARGET_CMDS
-	# 1. Config locations (These are working fine)
+	# 1. Config locations
 	$(INSTALL) -d -m 0755 $(TARGET_DIR)/etc/finder-app/conf/
 	$(INSTALL) -m 0644 $(@D)/conf/* $(TARGET_DIR)/etc/finder-app/conf/
 	$(INSTALL) -d -m 0755 $(TARGET_DIR)/usr/bin/conf/
 	$(INSTALL) -m 0644 $(@D)/conf/* $(TARGET_DIR)/usr/bin/conf/
 
-	# 2. Binaries and Scripts (These are working fine)
+	# 2. Binaries and Scripts
 	$(INSTALL) -m 0755 $(@D)/finder-app/writer $(TARGET_DIR)/usr/bin
 	$(INSTALL) -m 0755 $(@D)/finder-app/finder.sh $(TARGET_DIR)/usr/bin
 	$(INSTALL) -m 0755 $(@D)/finder-app/finder-test.sh $(TARGET_DIR)/usr/bin
 	
-	# 3. The Helpers & Test Script 
-	# Trying the ROOT directory $(@D) instead of $(@D)/finder-app
-	$(INSTALL) -m 0755 $(@D)/script-helpers.sh $(TARGET_DIR)/usr/bin
-	$(INSTALL) -m 0755 $(@D)/assignment-1-test.sh $(TARGET_DIR)/usr/bin
-
-	# 4. Socket Server (This is working fine)
-	$(INSTALL) -m 0755 $(@D)/server/aesdsocket $(TARGET_DIR)/usr/bin
-	$(INSTALL) -d -m 0755 $(TARGET_DIR)/etc/init.d
-	$(INSTALL) -m 0755 $(@D)/server/aesdsocket-start-stop $(TARGET_DIR)/etc/init.d/S99aesdsocket
+	# 3. The Helpers & Test Script (BASED ON YOUR FIND RESULTS)
+	# Note: No .sh extension on script-helpers
+	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/shared/script-helpers $(TARGET_DIR)/usr/bin/script-helpers.sh
+	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/assignment1/assignment-1-test.sh $(TARGET_DIR)/usr/bin/
 endef
 
 $(eval $(generic-package))
