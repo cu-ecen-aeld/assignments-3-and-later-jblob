@@ -36,10 +36,16 @@ define AESD_ASSIGNMENTS_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 0755 $(@D)/finder-app/finder.sh $(TARGET_DIR)/usr/bin
 	$(INSTALL) -m 0755 $(@D)/finder-app/finder-test.sh $(TARGET_DIR)/usr/bin
 	
-	# 3. The Helpers & Test Script (BASED ON YOUR FIND RESULTS)
-	# Note: No .sh extension on script-helpers
+	# 3. The Helpers (Renaming extensionless file to .sh for the autograder)
 	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/shared/script-helpers $(TARGET_DIR)/usr/bin/script-helpers.sh
-	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/assignment1/assignment-1-test.sh $(TARGET_DIR)/usr/bin/
+
+	# 4. The Test Script (Path verified from your find output)
+	$(INSTALL) -m 0755 $(@D)/assignment-autotest/test/assignment4-buildroot/assignment-1-test.sh $(TARGET_DIR)/usr/bin/
+
+	# 5. Socket Server
+	$(INSTALL) -m 0755 $(@D)/server/aesdsocket $(TARGET_DIR)/usr/bin
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/etc/init.d
+	$(INSTALL) -m 0755 $(@D)/server/aesdsocket-start-stop $(TARGET_DIR)/etc/init.d/S99aesdsocket
 endef
 
 $(eval $(generic-package))
