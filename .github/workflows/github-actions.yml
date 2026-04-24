@@ -62,7 +62,7 @@ full-test-assignment4:
         if: always()
         run: chown -R 1000:1000 .
 
-  full-test-assignment5buildroot:
+full-test-assignment5buildroot:
     container: cuaesd/aesd-autotest:24-assignment5-buildroot
     runs-on: self-hosted
     timeout-minutes: 120
