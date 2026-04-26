@@ -5,100 +5,22 @@ on:
       - '*'
 
 jobs:
-  unit-test:
-    container: cuaesd/aesd-autotest:24-unit-test
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v2
-      - name: Checkout submodules
-        run: git submodule update --init --recursive
-      - name: Run unit test
-        run: ./unit-test.sh
-      - name: Fix workspace permissions
-        if: always()
-        run: chown -R 1000:1000 .
+    unit-test:
+        container: cuaesd/aesd-autotest:24-unit-test
+        runs-on: self-hosted
+        steps:
+          - uses: actions/checkout@v2
+          - name: Checkout submodules
+            run : git submodule update --init --recursive
+          - name: Run unit test
+            run: ./unit-test.sh
+    full-test:
+        container: cuaesd/aesd-autotest:24-assignment6
+        runs-on: self-hosted
+        steps:
+          - uses: actions/checkout@v2
+          - name: Checkout submodules
+            run : git submodule update --init --recursive
+          - name: Run full test
+            run: ./full-test.sh
 
-#  full-test-assignment3:
-#    container: cuaesd/aesd-autotest:24-assignment3
-#    runs-on: self-hosted
-#    needs: unit-test
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Checkout submodules
-#        run: git submodule update --init --recursive
-      
-      # Fixes the network clone issues for A3
-#      - name: Force HTTPS for Git
-#        run: |
-#          git config --global url."https://".insteadOf git://
-#          git config --global url."https://github.com/mirror/busybox.git".insteadOf https://busybox.net/busybox.git
-#          git config --global url."https://github.com/mirror/busybox.git".insteadOf http://busybox.net/busybox.git          
-      
-#      - name: Run full test
-#        run: ./full-test.sh
-      
-#      - name: Fix workspace permissions
-#        if: always()
-#        run: chown -R 1000:1000 .
-
-  full-test-assignment4-buildroot:
-    container: cuaesd/aesd-autotest:24-assignment4-buildroot
-    runs-on: self-hosted
-    timeout-minutes: 360
-    needs: unit-test
-    steps:
-      - uses: actions/checkout@v2
-      - name: Checkout submodules
-        run: git submodule update --init --recursive
-      - name: Cleanup previous runs
-        run: killall -9 qemu-system-aarch64 || true
-      - name: Install Buildroot dependencies
-        run: |
-          apt-get update
-          apt-get install -y sshpass file rsync
-      # Fixes the network clone issues for A3
-      - name: Force HTTPS for Git
-        run: |
-          git config --global url."https://github.com/".insteadOf git@github.com:
-          git config --global url."https://".insteadOf git://
-          git config --global url."https://github.com/mirror/busybox.git".insteadOf https://busybox.net/busybox.git
-          git config --global url."https://github.com/mirror/busybox.git".insteadOf http://busybox.net/busybox.git          
-      - name: Run full test
-        run: ./full-test.sh
-      - name: Fix workspace permissions
-        if: always()
-        run: chown -R 1000:1000 .
-
-#  full-test-assignment5buildroot:
-#    container: cuaesd/aesd-autotest:24-assignment5-buildroot
-#    runs-on: self-hosted
-#    timeout-minutes: 360
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Checkout submodules
-#        run: git submodule update --init --recursive
-#      - name: Cleanup previous runs
-#        run: killall -9 qemu-system-aarch64 || true
-#      - name: Install sshpass
-#        run: |
-#          apt-get update
-#          apt-get install -y sshpass
-#      - name: Run full test
-#        run: ./full-test.sh
-#      - name: Fix workspace permissions
-#        if: always()
-#        run: chown -R 1000:1000 .
-
-#  full-test-assignment5final:
-#    needs: full-test-assignment5buildroot
-#    runs-on: self-hosted
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Checkout submodules
-#        run: git submodule update --init --recursive
-#      - name: Cleanup previous runs
-#        run: killall -9 qemu-system-aarch64 || true
-#      - name: Fix workspace permissions
-#        run: chown -R $USER:$USER .
-#      - name: Run full test
-#        run: ./full-test.sh

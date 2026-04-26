@@ -8,3 +8,8 @@ aesd-build
 Makefile_tmp
 build/
 *.log
+test.sh.log
+aesdsocket
+server/aesdsocket
+server/valgrind-out.txt
+
