@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	int sockfd, new_fd;
 	int status;
 	struct sockaddr_storage their_addr;
-	struct thread_data th_data;
+	struct thread_data *th_data;
 
 	struct addrinfo hints;
 	struct addrinfo *servinfo; // will point to the results of getaddrinfo
@@ -266,9 +266,15 @@ int main(int argc, char *argv[])
 	
 		int err;
 		pthread_t thread_id; // is passed as 1st arg to pthread_create and filled by it
-		th_data.their_addr = their_addr;
-		th_data.new_fd = new_fd;
-		err = pthread_create(&thread_id, NULL, threadfunc, (void*)&th_data);
+		th_data = malloc(sizeof(struct thread_data));
+		if (th_data == NULL)
+		{
+			syslog(LOG_ERR, "<AESDSOCKET>error in malloc - exiting");
+			return -1;
+		}
+		th_data->their_addr = their_addr;
+		th_data->new_fd = new_fd;
+		err = pthread_create(&thread_id, NULL, threadfunc, (void*)th_data);
 		if (err != 0)
 		{
 			// TODO: errorhandling
