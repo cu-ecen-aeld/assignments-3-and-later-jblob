@@ -21,6 +21,7 @@
 
 volatile sig_atomic_t caught_sig  = false;
 
+pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct thread_data
 {
 	struct sockaddr_storage their_addr;
@@ -60,6 +61,9 @@ void *threadfunc(void *arg)
 
 	syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
 		
+	// --- START KRITISCHER ABSCHNITT ---
+    pthread_mutex_lock(&file_mutex);
+	
 	// write received data to file FOUT
 	FILE *fout = fopen(FOUT, "a+");
 	if (fout == NULL)
@@ -110,6 +114,9 @@ void *threadfunc(void *arg)
 		}
 	}
 		
+	pthread_mutex_unlock(&file_mutex);
+    // --- ENDE KRITISCHER ABSCHNITT ---
+	
 	if (bytes_received == -1)
 	{
 #ifdef DEBUG_OUT
