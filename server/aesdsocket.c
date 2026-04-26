@@ -32,7 +32,6 @@ struct thread_data
 	SLIST_ENTRY(thread_data) entries; // pointer to the next element
 };
 
-
 static void signal_handler(int signal_number)
 {
 	if ((signal_number == SIGINT) || (signal_number == SIGTERM))
@@ -140,6 +139,35 @@ void *threadfunc(void *arg)
 	pthread_exit(NULL);
 }
 
+void* timer_thread(void* arg) 
+{
+	sleep(10);
+
+	time_t rawtime;
+	struct tm *info;
+	char buffer[80];
+
+	time(&rawtime);
+	info = localtime(&rawtime);
+	strftime(buffer, sizeof(buffer), "timestamp:%Y/%m/%d/%H/%M/%S\n", info);
+
+	pthread_mutex_lock(&file_mutex);
+	FILE *fout = fopen(FOUT, "a+");
+	if (fout == NULL) 
+	{
+#ifdef DEBUG_OUT
+		syslog(LOG_ERR, "<AESDSOCKET><TIMERTHREAD>writing to file %s failed", FOUT);
+#endif
+		return NULL;
+	}
+	fputs(buffer, fout);
+	fclose(fout);
+	
+	pthread_mutex_unlock(&file_mutex);
+
+    return NULL;
+}
+
 int main(int argc, char *argv[])
 {
 	bool run_as_daemon = false;
@@ -187,6 +215,15 @@ int main(int argc, char *argv[])
 	struct slisthead head;
 	SLIST_INIT(&head); // Initialize the head
 	struct thread_data *datap, *tmp_datap; // Declare iterators for SLIST_FOREACH_SAFE
+	
+	pthread_t thread_id_timer;
+	int err_timer;
+	err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
+	if (err_timer != 0)
+	{
+		// TODO: errorhandling
+		syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
+	}
 
 	// 1. Get address information
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
@@ -339,6 +376,8 @@ int main(int argc, char *argv[])
 		free(datap);
 	}
 	datap = tmp_datap;
+
+	pthread_join(thread_id_timer, NULL);
 	
 	close(sockfd);
 	closelog();
