@@ -31,21 +31,26 @@ static void signal_handler(int signal_number)
 
 void *threadfunc(void *arg) 
 {
+	struct sockaddr_storage *their_addr = (struct sockaddr_storage *)arg;
+
 	// send/recv
 	// 6. Get the printable IP address
 	void *addr;
-	if (their_addr.ss_family == AF_INET) // IPv4
+	char s[INET6_ADDRSTRLEN];
+	int new_fd;
+
+	if (their_addr->ss_family == AF_INET) // IPv4
 	{
-		struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
+		struct sockaddr_in *ipv4 = (struct sockaddr_in *)their_addr;
 		addr = &(ipv4->sin_addr);
 	} 
 	else // IPv6
 	{
-		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&their_addr;
+		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)their_addr;
 		addr = &(ipv6->sin6_addr);
 	}
 
-	inet_ntop(their_addr.ss_family, addr, s, sizeof s);
+	inet_ntop(their_addr->ss_family, addr, s, sizeof s);
 
 	syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
 		
@@ -55,7 +60,7 @@ void *threadfunc(void *arg)
 	{
 		syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
 		close(new_fd);
-		continue;
+//		continue; // TODO: break or exit here ?
 	}
 		
 	// loop while we get data
@@ -107,9 +112,12 @@ void *threadfunc(void *arg)
 	}
 
 	// Cleanup
+	free(their_addr);
 	fclose(fout);
 	close(new_fd);
 	syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
+	
+	pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[])
@@ -145,9 +153,8 @@ int main(int argc, char *argv[])
 
 	struct addrinfo hints;
 	struct addrinfo *servinfo; // will point to the results of getaddrinfo
-	struct sockaddr_storage their_addr;
+	struct sockaddr_storage *their_addr = malloc(sizeof(struct sockaddr_storage));
 	socklen_t addr_size;
-	char s[INET6_ADDRSTRLEN];
 	
 	memset(&hints, 0, sizeof hints); // make sure the struct is empty
 	hints.ai_family = AF_UNSPEC;     // don't care IPv4 or IPv6
@@ -253,6 +260,11 @@ int main(int argc, char *argv[])
 		int err;
 		pthread_t thread_id; // is passed as 1st arg to pthread_create and filled by it
 		err = pthread_create(&thread_id, NULL, threadfunc, (void*)their_addr);
+		if (err != 0)
+		{
+			// TODO: errorhandling
+			syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err);
+		}
 	}
 
 	syslog(LOG_DEBUG, "<AESDSOCKET>Caught signal, exiting");
