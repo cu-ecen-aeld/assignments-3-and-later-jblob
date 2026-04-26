@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <pthread.h>
+#include <sys/queue.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -26,6 +27,9 @@ struct thread_data
 {
 	struct sockaddr_storage their_addr;
 	int new_fd;
+	bool bThreadCompleted;
+	pthread_t thread_id;
+	SLIST_ENTRY(thread_data) entries; // pointer to the next element
 };
 
 
@@ -62,7 +66,7 @@ void *threadfunc(void *arg)
 	syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
 		
 	// --- START KRITISCHER ABSCHNITT ---
-    pthread_mutex_lock(&file_mutex);
+	pthread_mutex_lock(&file_mutex);
 	
 	// write received data to file FOUT
 	FILE *fout = fopen(FOUT, "a+");
@@ -71,6 +75,8 @@ void *threadfunc(void *arg)
 		syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
 		close(th_arg->new_fd);
 //		continue; // TODO: break or exit here ?
+		th_arg->bThreadCompleted = true;
+		pthread_exit(NULL);
 	}
 		
 	// loop while we get data
@@ -114,9 +120,6 @@ void *threadfunc(void *arg)
 		}
 	}
 		
-	pthread_mutex_unlock(&file_mutex);
-    // --- ENDE KRITISCHER ABSCHNITT ---
-	
 	if (bytes_received == -1)
 	{
 #ifdef DEBUG_OUT
@@ -125,10 +128,14 @@ void *threadfunc(void *arg)
 	}
 
 	// Cleanup
-	//free(th_arg->their_addr);
 	fclose(fout);
+	pthread_mutex_unlock(&file_mutex);
+	// --- ENDE KRITISCHER ABSCHNITT ---
+	
 	close(th_arg->new_fd);
 	syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
+	
+	th_arg->bThreadCompleted = true;
 	
 	pthread_exit(NULL);
 }
@@ -171,9 +178,15 @@ int main(int argc, char *argv[])
 	socklen_t addr_size;
 	
 	memset(&hints, 0, sizeof hints); // make sure the struct is empty
-	hints.ai_family = AF_UNSPEC;     // don't care IPv4 or IPv6
+	hints.ai_family = AF_UNSPEC;	 // don't care IPv4 or IPv6
 	hints.ai_socktype = SOCK_STREAM; // TCP stream sockets
-	hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+	hints.ai_flags = AI_PASSIVE;	 // fill in my IP for me
+
+	// head of the list
+	SLIST_HEAD(slisthead, thread_data);
+	struct slisthead head;
+	SLIST_INIT(&head); // Initialize the head
+	struct thread_data *datap, *tmp_datap; // Declare iterators for SLIST_FOREACH_SAFE
 
 	// 1. Get address information
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
@@ -272,7 +285,7 @@ int main(int argc, char *argv[])
 		}
 	
 		int err;
-		pthread_t thread_id; // is passed as 1st arg to pthread_create and filled by it
+		// pthread_t thread_id; // is passed as 1st arg to pthread_create and filled by it
 		th_data = malloc(sizeof(struct thread_data));
 		if (th_data == NULL)
 		{
@@ -281,11 +294,27 @@ int main(int argc, char *argv[])
 		}
 		th_data->their_addr = their_addr;
 		th_data->new_fd = new_fd;
-		err = pthread_create(&thread_id, NULL, threadfunc, (void*)th_data);
+		th_data->bThreadCompleted = false;
+		err = pthread_create(&(th_data->thread_id), NULL, threadfunc, (void*)th_data);
 		if (err != 0)
 		{
 			// TODO: errorhandling
 			syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err);
+		}
+		// add the thread to the linked list:
+		SLIST_INSERT_HEAD(&head, th_data, entries);
+		
+		datap = SLIST_FIRST(&head);
+		while(datap != NULL)
+		{
+			tmp_datap = SLIST_NEXT(datap, entries);
+			if (datap->bThreadCompleted) 
+			{
+				pthread_join(datap->thread_id, NULL);
+				SLIST_REMOVE(&head, datap, thread_data, entries);
+				free(datap);
+			}
+			datap = tmp_datap;
 		}
 	}
 
@@ -299,6 +328,17 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_OUT
 	syslog(LOG_INFO, "<AESDSOCKET>server shutdown");
 #endif
+	
+	// close all remaining threads
+	datap = SLIST_FIRST(&head);
+	while(datap != NULL)
+	{
+		tmp_datap = SLIST_NEXT(datap, entries);
+		pthread_join(datap->thread_id, NULL);
+		SLIST_REMOVE(&head, datap, thread_data, entries);
+		free(datap);
+	}
+	datap = tmp_datap;
 	
 	close(sockfd);
 	closelog();
