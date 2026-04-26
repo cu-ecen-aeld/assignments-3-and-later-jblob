@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -26,6 +27,89 @@ static void signal_handler(int signal_number)
 	{
 		caught_sig = true;
 	}
+}
+
+void *threadfunc(void *arg) 
+{
+	// send/recv
+	// 6. Get the printable IP address
+	void *addr;
+	if (their_addr.ss_family == AF_INET) // IPv4
+	{
+		struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
+		addr = &(ipv4->sin_addr);
+	} 
+	else // IPv6
+	{
+		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&their_addr;
+		addr = &(ipv6->sin6_addr);
+	}
+
+	inet_ntop(their_addr.ss_family, addr, s, sizeof s);
+
+	syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
+		
+	// write received data to file FOUT
+	FILE *fout = fopen(FOUT, "a+");
+	if (fout == NULL)
+	{
+		syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
+		close(new_fd);
+		continue;
+	}
+		
+	// loop while we get data
+	char buf[1024]; // Buffer for incoming data
+	ssize_t bytes_received;
+	int ret;
+		
+	while ((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0)
+	{
+		ret = fwrite(buf, 1, bytes_received, fout);
+		if (ret != (size_t)bytes_received)
+		{
+			// writing to file failed
+			syslog(LOG_ERR, "<AESDSOCKET>writing to file %s failed", FOUT);
+			// return(-1);
+			break;
+		}
+		
+		// flush to disk if newline is found
+		if (memchr(buf, '\n', bytes_received) != NULL)
+		{
+			// packet is complete
+			fflush(fout);
+
+			// Send the full file content back to the client
+			rewind(fout); // Go to the start of the file
+			char send_buf[1024];
+			size_t bytes_read;
+				
+			while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
+			{
+				if (send(new_fd, send_buf, bytes_read, 0) == -1) 
+				{
+					syslog(LOG_ERR, "<AESDSOCKET>failed sending file content back to sender");
+					break;
+				}
+			}
+				
+			// Seek back to the end so the next append happens correctly
+			fseek(fout, 0, SEEK_END);
+		}
+	}
+		
+	if (bytes_received == -1)
+	{
+#ifdef DEBUG_OUT
+		syslog(LOG_ERR, "<AESDSOCKET>error in recv");
+#endif
+	}
+
+	// Cleanup
+	fclose(fout);
+	close(new_fd);
+	syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
 }
 
 int main(int argc, char *argv[])
@@ -166,85 +250,9 @@ int main(int argc, char *argv[])
 			continue;
 		}
 	
-		// send/recv
-		// 6. Get the printable IP address
-		void *addr;
-		if (their_addr.ss_family == AF_INET) // IPv4
-		{
-			struct sockaddr_in *ipv4 = (struct sockaddr_in *)&their_addr;
-			addr = &(ipv4->sin_addr);
-		} 
-		else // IPv6
-		{
-			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&their_addr;
-			addr = &(ipv6->sin6_addr);
-		}
-
-		inet_ntop(their_addr.ss_family, addr, s, sizeof s);
-
-		syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
-		
-		// write received data to file FOUT
-		FILE *fout = fopen(FOUT, "a+");
-		if (fout == NULL)
-		{
-			syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
-			close(new_fd);
-			continue;
-		}
-		
-		// loop while we get data
-		char buf[1024]; // Buffer for incoming data
-		ssize_t bytes_received;
-		int ret;
-		
-		while ((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0)
-		{
-			ret = fwrite(buf, 1, bytes_received, fout);
-			if (ret != (size_t)bytes_received)
-			{
-				// writing to file failed
-				syslog(LOG_ERR, "<AESDSOCKET>writing to file %s failed", FOUT);
-				// return(-1);
-				break;
-			}
-			
-			// flush to disk if newline is found
-			if (memchr(buf, '\n', bytes_received) != NULL)
-			{
-				// packet is complete
-				fflush(fout);
-
-				// Send the full file content back to the client
-				rewind(fout); // Go to the start of the file
-				char send_buf[1024];
-				size_t bytes_read;
-					
-				while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
-				{
-					if (send(new_fd, send_buf, bytes_read, 0) == -1) 
-					{
-						syslog(LOG_ERR, "<AESDSOCKET>failed sending file content back to sender");
-						break;
-					}
-				}
-					
-				// Seek back to the end so the next append happens correctly
-				fseek(fout, 0, SEEK_END);
-			}
-		}
-		
-		if (bytes_received == -1)
-		{
-#ifdef DEBUG_OUT
-			syslog(LOG_ERR, "<AESDSOCKET>error in recv");
-#endif
-		}
-
-		// Cleanup
-		fclose(fout);
-		close(new_fd);
-		syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
+		int err;
+		pthread_t thread_id; // is passed as 1st arg to pthread_create and filled by it
+		err = pthread_create(&thread_id, NULL, threadfunc, (void*)their_addr);
 	}
 
 	syslog(LOG_DEBUG, "<AESDSOCKET>Caught signal, exiting");
