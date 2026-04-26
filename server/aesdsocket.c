@@ -21,6 +21,13 @@
 
 volatile sig_atomic_t caught_sig  = false;
 
+struct thread_data
+{
+	struct sockaddr_storage their_addr;
+	int new_fd;
+};
+
+
 static void signal_handler(int signal_number)
 {
 	if ((signal_number == SIGINT) || (signal_number == SIGTERM))
@@ -31,26 +38,25 @@ static void signal_handler(int signal_number)
 
 void *threadfunc(void *arg) 
 {
-	struct sockaddr_storage *their_addr = (struct sockaddr_storage *)arg;
+	struct thread_data *th_arg = (struct thread_data *)arg;
 
 	// send/recv
 	// 6. Get the printable IP address
 	void *addr;
 	char s[INET6_ADDRSTRLEN];
-	int new_fd;
 
-	if (their_addr->ss_family == AF_INET) // IPv4
+	if (th_arg->their_addr.ss_family == AF_INET) // IPv4
 	{
-		struct sockaddr_in *ipv4 = (struct sockaddr_in *)their_addr;
+		struct sockaddr_in *ipv4 = (struct sockaddr_in *)&th_arg->their_addr;
 		addr = &(ipv4->sin_addr);
 	} 
 	else // IPv6
 	{
-		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)their_addr;
+		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&th_arg->their_addr;
 		addr = &(ipv6->sin6_addr);
 	}
 
-	inet_ntop(their_addr->ss_family, addr, s, sizeof s);
+	inet_ntop(th_arg->their_addr.ss_family, addr, s, sizeof s);
 
 	syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
 		
@@ -59,7 +65,7 @@ void *threadfunc(void *arg)
 	if (fout == NULL)
 	{
 		syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
-		close(new_fd);
+		close(th_arg->new_fd);
 //		continue; // TODO: break or exit here ?
 	}
 		
@@ -68,7 +74,7 @@ void *threadfunc(void *arg)
 	ssize_t bytes_received;
 	int ret;
 		
-	while ((bytes_received = recv(new_fd, buf, sizeof(buf), 0)) > 0)
+	while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0)
 	{
 		ret = fwrite(buf, 1, bytes_received, fout);
 		if (ret != (size_t)bytes_received)
@@ -92,7 +98,7 @@ void *threadfunc(void *arg)
 				
 			while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
 			{
-				if (send(new_fd, send_buf, bytes_read, 0) == -1) 
+				if (send(th_arg->new_fd, send_buf, bytes_read, 0) == -1) 
 				{
 					syslog(LOG_ERR, "<AESDSOCKET>failed sending file content back to sender");
 					break;
@@ -112,9 +118,9 @@ void *threadfunc(void *arg)
 	}
 
 	// Cleanup
-	free(their_addr);
+	//free(th_arg->their_addr);
 	fclose(fout);
-	close(new_fd);
+	close(th_arg->new_fd);
 	syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
 	
 	pthread_exit(NULL);
@@ -150,10 +156,11 @@ int main(int argc, char *argv[])
 
 	int sockfd, new_fd;
 	int status;
+	struct sockaddr_storage their_addr;
+	struct thread_data th_data;
 
 	struct addrinfo hints;
 	struct addrinfo *servinfo; // will point to the results of getaddrinfo
-	struct sockaddr_storage *their_addr = malloc(sizeof(struct sockaddr_storage));
 	socklen_t addr_size;
 	
 	memset(&hints, 0, sizeof hints); // make sure the struct is empty
@@ -259,7 +266,9 @@ int main(int argc, char *argv[])
 	
 		int err;
 		pthread_t thread_id; // is passed as 1st arg to pthread_create and filled by it
-		err = pthread_create(&thread_id, NULL, threadfunc, (void*)their_addr);
+		th_data.their_addr = their_addr;
+		th_data.new_fd = new_fd;
+		err = pthread_create(&thread_id, NULL, threadfunc, (void*)&th_data);
 		if (err != 0)
 		{
 			// TODO: errorhandling
