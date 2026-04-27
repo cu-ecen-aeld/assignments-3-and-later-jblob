@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <sys/queue.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -380,8 +381,8 @@ int main(int argc, char *argv[])
 		pthread_join(datap->thread_id, NULL);
 		SLIST_REMOVE(&head, datap, thread_data, entries);
 		free(datap);
+		datap = tmp_datap;
 	}
-	datap = tmp_datap;
 
 	pthread_join(thread_id_timer, NULL);
 	
