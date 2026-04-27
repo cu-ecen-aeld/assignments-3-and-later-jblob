@@ -332,7 +332,8 @@ int main(int argc, char *argv[])
 		if (th_data == NULL)
 		{
 			syslog(LOG_ERR, "<AESDSOCKET>error in malloc - exiting");
-			return -1;
+			close(new_fd);
+			continue;
 		}
 		th_data->their_addr = their_addr;
 		th_data->new_fd = new_fd;
