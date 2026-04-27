@@ -166,6 +166,7 @@ void* timer_thread(void* arg)
 #ifdef DEBUG_OUT
 			syslog(LOG_ERR, "<AESDSOCKET><TIMERTHREAD>writing to file %s failed", FOUT);
 #endif
+			pthread_mutex_unlock(&file_mutex);
 			return NULL;
 		}
 		fputs(buffer, fout);
@@ -227,12 +228,6 @@ int main(int argc, char *argv[])
 	
 	pthread_t thread_id_timer;
 	int err_timer;
-	err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
-	if (err_timer != 0)
-	{
-		// TODO: errorhandling
-		syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
-	}
 
 	// 1. Get address information
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
@@ -300,6 +295,13 @@ int main(int argc, char *argv[])
 		}
 	}
 	
+	err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
+	if (err_timer != 0)
+	{
+		// TODO: errorhandling
+		syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
+	}
+
 	// 4. Listen for incoming connections
 	// listen
 	status = listen(sockfd, BACKLOG);
