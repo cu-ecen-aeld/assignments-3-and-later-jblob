@@ -91,7 +91,6 @@ void *threadfunc(void *arg)
 		{
 			// writing to file failed
 			syslog(LOG_ERR, "<AESDSOCKET>writing to file %s failed", FOUT);
-			// return(-1);
 			break;
 		}
 		
@@ -150,7 +149,7 @@ void* timer_thread(void* arg)
 		}
 
 		if (caught_sig)
-			return NULL;
+			break;
 	
 		time_t rawtime;
 		struct tm *info;
@@ -158,7 +157,7 @@ void* timer_thread(void* arg)
 
 		time(&rawtime);
 		info = localtime(&rawtime);
-		strftime(buffer, sizeof(buffer), "timestamp:%Y/%m/%d/%H/%M/%S\n", info);
+		strftime(buffer, sizeof(buffer), "timestamp: %Y/%m/%d/%H/%M/%S\n", info);
 
 		pthread_mutex_lock(&file_mutex);
 		FILE *fout = fopen(FOUT, "a+");
@@ -367,11 +366,6 @@ int main(int argc, char *argv[])
 	}
 
 	syslog(LOG_DEBUG, "<AESDSOCKET>Caught signal, exiting");
-	status = remove(FOUT);
-	if( status != 0 )
-	{
-		syslog(LOG_ERR, "<AESDSOCKET>error deleting file %s\n", FOUT);
-	}
 	
 #ifdef DEBUG_OUT
 	syslog(LOG_INFO, "<AESDSOCKET>server shutdown");
@@ -393,5 +387,11 @@ int main(int argc, char *argv[])
 	close(sockfd);
 	closelog();
 	
+	status = remove(FOUT);
+	if( status != 0 )
+	{
+		syslog(LOG_ERR, "<AESDSOCKET>error deleting file %s\n", FOUT);
+	}
+
 	return 0;
 }
