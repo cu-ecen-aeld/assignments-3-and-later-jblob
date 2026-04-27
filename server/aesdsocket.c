@@ -142,34 +142,38 @@ void *threadfunc(void *arg)
 
 void* timer_thread(void* arg) 
 {
-	if  (caught_sig)
+	while (!caught_sig)
 	{
-		return NULL;
-	}
+		for (int i=0; i<10 && !caught_sig; i++)
+		{
+			sleep(1);
+		}
+
+		if (caught_sig)
+			return NULL;
 	
-	sleep(10);
+		time_t rawtime;
+		struct tm *info;
+		char buffer[80];
 
-	time_t rawtime;
-	struct tm *info;
-	char buffer[80];
+		time(&rawtime);
+		info = localtime(&rawtime);
+		strftime(buffer, sizeof(buffer), "timestamp:%Y/%m/%d/%H/%M/%S\n", info);
 
-	time(&rawtime);
-	info = localtime(&rawtime);
-	strftime(buffer, sizeof(buffer), "timestamp:%Y/%m/%d/%H/%M/%S\n", info);
-
-	pthread_mutex_lock(&file_mutex);
-	FILE *fout = fopen(FOUT, "a+");
-	if (fout == NULL) 
-	{
+		pthread_mutex_lock(&file_mutex);
+		FILE *fout = fopen(FOUT, "a+");
+		if (fout == NULL) 
+		{
 #ifdef DEBUG_OUT
-		syslog(LOG_ERR, "<AESDSOCKET><TIMERTHREAD>writing to file %s failed", FOUT);
+			syslog(LOG_ERR, "<AESDSOCKET><TIMERTHREAD>writing to file %s failed", FOUT);
 #endif
-		return NULL;
-	}
-	fputs(buffer, fout);
-	fclose(fout);
+			return NULL;
+		}
+		fputs(buffer, fout);
+		fclose(fout);
 	
-	pthread_mutex_unlock(&file_mutex);
+		pthread_mutex_unlock(&file_mutex);
+	}
 
     return NULL;
 }
