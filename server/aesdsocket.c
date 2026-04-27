@@ -141,6 +141,11 @@ void *threadfunc(void *arg)
 
 void* timer_thread(void* arg) 
 {
+	if  (caught_sig)
+	{
+		return NULL;
+	}
+	
 	sleep(10);
 
 	time_t rawtime;
