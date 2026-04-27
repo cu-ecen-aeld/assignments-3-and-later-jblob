@@ -76,6 +76,7 @@ void *threadfunc(void *arg)
 		close(th_arg->new_fd);
 //		continue; // TODO: break or exit here ?
 		th_arg->bThreadCompleted = true;
+		pthread_mutex_unlock(&file_mutex);
 		pthread_exit(NULL);
 	}
 		
@@ -167,7 +168,7 @@ void* timer_thread(void* arg)
 			syslog(LOG_ERR, "<AESDSOCKET><TIMERTHREAD>writing to file %s failed", FOUT);
 #endif
 			pthread_mutex_unlock(&file_mutex);
-			return NULL;
+			continue; // dont return so that the timerthread gets called again in 10 secs
 		}
 		fputs(buffer, fout);
 		fclose(fout);
@@ -295,13 +296,6 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
-	if (err_timer != 0)
-	{
-		// TODO: errorhandling
-		syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
-	}
-
 	// 4. Listen for incoming connections
 	// listen
 	status = listen(sockfd, BACKLOG);
@@ -310,6 +304,13 @@ int main(int argc, char *argv[])
 		syslog(LOG_ERR, "<AESDSOCKET>error in listen");
 		close(sockfd);
 		return -1;
+	}
+
+	err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
+	if (err_timer != 0)
+	{
+		// TODO: errorhandling
+		syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
 	}
 
 #ifdef DEBUG_OUT	
