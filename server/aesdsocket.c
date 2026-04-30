@@ -67,56 +67,35 @@ void *threadfunc(void *arg)
 		
 	// --- START KRITISCHER ABSCHNITT ---
 	pthread_mutex_lock(&file_mutex);
-	
-	// write received data to file FOUT
-	FILE *fout = fopen(FOUT, "a");
-	if (fout == NULL)
-	{
-		syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
-		close(th_arg->new_fd);
-//		continue; // TODO: break or exit here ?
-		th_arg->bThreadCompleted = true;
-		pthread_mutex_unlock(&file_mutex);
-		pthread_exit(NULL);
-	}
-		
-	// loop while we get data
-	char buf[1024]; // Buffer for incoming data
-	ssize_t bytes_received;
-		
-	// Receive until newline
-	while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
-	{
-		fwrite(buf, 1, bytes_received, fout);
-		if (memchr(buf, '\n', bytes_received) != NULL) 
-		{
-			break; // Stop receiving once the newline is found
-		}
-	}
-	fclose(fout); // Close write handle to flush to disk
+FILE *fout = fopen(FOUT, "a");
+    if (fout != NULL) {
+        char buf[1024];
+        ssize_t bytes_received;
+        while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) {
+            fwrite(buf, 1, bytes_received, fout);
+            if (memchr(buf, '\n', bytes_received) != NULL) break;
+        }
+        fclose(fout);
+    }
 
-	// Re-open to send EVERYTHING back
-	fout = fopen(FOUT, "r");
-	if (fout) 
-	{
-		char send_buf[1024];
-		size_t bytes_read;
-		while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
-		{
-			send(th_arg->new_fd, send_buf, bytes_read, 0);
-		}
-		fclose(fout);
-	}
+    fout = fopen(FOUT, "r");
+    if (fout != NULL) {
+        char send_buf[1024];
+        size_t bytes_read;
+        while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) {
+            send(th_arg->new_fd, send_buf, bytes_read, 0);
+        }
+        fclose(fout);
+    }
+    pthread_mutex_unlock(&file_mutex);
 
-	pthread_mutex_unlock(&file_mutex);
-	// --- ENDE KRITISCHER ABSCHNITT ---
-	
-	close(th_arg->new_fd);
-	syslog(LOG_DEBUG, "<AESDSOCKET>Closed connection from %s", s);
-	
-	th_arg->bThreadCompleted = true;
-	
-	pthread_exit(NULL);
+    // 2. CLEAN UP
+    close(th_arg->new_fd);
+	pthread_mutex_lock(&file_mutex);
+    th_arg->bThreadCompleted = true; 
+    pthread_mutex_unlock(&file_mutex);    
+
+    return NULL;
 }
 
 void* timer_thread(void* arg) 
@@ -351,16 +330,23 @@ int main(int argc, char *argv[])
 		}
 		
 		datap = SLIST_FIRST(&head);
-		while(datap != NULL)
+		while (datap != NULL) 
 		{
-			tmp_datap = SLIST_NEXT(datap, entries);
+			// 1. Save the pointer to the NEXT element BEFORE we potentially free 'datap'
+			tmp_datap = SLIST_NEXT(datap, entries); 
+
 			if (datap->bThreadCompleted) 
 			{
+				// 2. Join the thread to prevent zombies
 				pthread_join(datap->thread_id, NULL);
+
+				// 3. Remove from list and free memory
 				SLIST_REMOVE(&head, datap, thread_data, entries);
 				free(datap);
 			}
-			datap = tmp_datap;
+			
+			// 4. Move to the next element using our saved pointer
+			datap = tmp_datap; 
 		}
 	}
 
