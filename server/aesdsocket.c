@@ -69,7 +69,7 @@ void *threadfunc(void *arg)
 	pthread_mutex_lock(&file_mutex);
 	
 	// write received data to file FOUT
-	FILE *fout = fopen(FOUT, "a+");
+	FILE *fout = fopen(FOUT, "a");
 	if (fout == NULL)
 	{
 		syslog(LOG_ERR, "<AESDSOCKET>Error creating file %s", FOUT);
@@ -83,46 +83,29 @@ void *threadfunc(void *arg)
 	// loop while we get data
 	char buf[1024]; // Buffer for incoming data
 	ssize_t bytes_received;
-	int ret;
 		
-	while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0)
+	while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
 	{
-		ret = fwrite(buf, 1, bytes_received, fout);
-		if (ret != (size_t)bytes_received)
+		fwrite(buf, 1, bytes_received, fout);
+		if (memchr(buf, '\n', bytes_received) != NULL) 
 		{
-			// writing to file failed
-			syslog(LOG_ERR, "<AESDSOCKET>writing to file %s failed", FOUT);
-			break;
-		}
-		
-		// flush to disk if newline is found
-		if (memchr(buf, '\n', bytes_received) != NULL)
-		{
-			// packet is complete
-			fflush(fout);
-
-			// Send the full file content back to the client
-			rewind(fout); // Go to the start of the file
-			char send_buf[1024];
-			size_t bytes_read;
-				
-			while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
-			{
-				send(th_arg->new_fd, send_buf, bytes_read, 0);
-			}
-			break;
+			break; // Packet complete
 		}
 	}
-		
-	if (bytes_received == -1)
+	fclose(fout); // Flush and close write handle
+
+	fout = fopen(FOUT, "r"); // Reopen for read only
+	if (fout != NULL) 
 	{
-#ifdef DEBUG_OUT
-		syslog(LOG_ERR, "<AESDSOCKET>error in recv");
-#endif
+		char send_buf[1024];
+		size_t bytes_read;
+		while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
+		{
+			send(th_arg->new_fd, send_buf, bytes_read, 0);
+		}
+		fclose(fout);
 	}
 
-	// Cleanup
-	fclose(fout);
 	pthread_mutex_unlock(&file_mutex);
 	// --- ENDE KRITISCHER ABSCHNITT ---
 	
