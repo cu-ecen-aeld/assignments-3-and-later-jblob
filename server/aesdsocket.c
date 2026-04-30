@@ -101,11 +101,11 @@ void *threadfunc(void *arg)
 		size_t bytes_read;
 		while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
 		{
+			syslog(LOG_DEBUG, "<AESDSOCKET> Sending %zu bytes back", bytes_read);
 			send(th_arg->new_fd, send_buf, bytes_read, 0);
 		}
 		fclose(fout);
 	}
-
 	pthread_mutex_unlock(&file_mutex);
 	// --- ENDE KRITISCHER ABSCHNITT ---
 	
