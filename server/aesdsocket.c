@@ -111,9 +111,6 @@ void *threadfunc(void *arg)
 				send(th_arg->new_fd, send_buf, bytes_read, 0);
 			}
 			break;
-				
-			// Seek back to the end so the next append happens correctly
-			fseek(fout, 0, SEEK_END);
 		}
 	}
 		
