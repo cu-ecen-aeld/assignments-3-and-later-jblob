@@ -185,6 +185,7 @@ int main(int argc, char *argv[])
 		syslog(LOG_ERR, "<AESDSOCKET>error in sigaction SIGTERM");
 		return -1;
 	}
+	signal(SIGPIPE, SIG_IGN);
 
 	int sockfd, new_fd;
 	int status;
@@ -209,10 +210,14 @@ int main(int argc, char *argv[])
 	pthread_t thread_id_timer;
 	int err_timer;
 
-	status = remove(FOUT);
-	if( status != 0 )
+	FILE *f = fopen(FOUT, "w"); 
+	if (f != NULL) 
 	{
-		syslog(LOG_ERR, "<AESDSOCKET>error deleting file %s\n", FOUT);
+		fclose(f);
+	} 
+	else 
+	{
+		syslog(LOG_ERR, "<AESDSOCKET> Could not initialize file %s", FOUT);
 	}
 
 	// 1. Get address information
