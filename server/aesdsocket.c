@@ -230,6 +230,12 @@ int main(int argc, char *argv[])
 	pthread_t thread_id_timer;
 	int err_timer;
 
+	status = remove(FOUT);
+	if( status != 0 )
+	{
+		syslog(LOG_ERR, "<AESDSOCKET>error deleting file %s\n", FOUT);
+	}
+
 	// 1. Get address information
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
 	if (status != 0)
