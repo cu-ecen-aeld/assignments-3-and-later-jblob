@@ -84,28 +84,30 @@ void *threadfunc(void *arg)
 	char buf[1024]; // Buffer for incoming data
 	ssize_t bytes_received;
 		
+	// Receive until newline
 	while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
 	{
 		fwrite(buf, 1, bytes_received, fout);
 		if (memchr(buf, '\n', bytes_received) != NULL) 
 		{
-			break; // Packet complete
+			break; // Stop receiving once the newline is found
 		}
 	}
-	fclose(fout); // Flush and close write handle
+	fclose(fout); // Close write handle to flush to disk
 
-	fout = fopen(FOUT, "r"); // Reopen for read only
-	if (fout != NULL) 
+	// Re-open to send EVERYTHING back
+	fout = fopen(FOUT, "r");
+	if (fout) 
 	{
 		char send_buf[1024];
 		size_t bytes_read;
 		while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
 		{
-			syslog(LOG_DEBUG, "<AESDSOCKET> Sending %zu bytes back", bytes_read);
 			send(th_arg->new_fd, send_buf, bytes_read, 0);
 		}
 		fclose(fout);
 	}
+
 	pthread_mutex_unlock(&file_mutex);
 	// --- ENDE KRITISCHER ABSCHNITT ---
 	
@@ -289,16 +291,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
-	if (err_timer != 0)
-	{
-		// TODO: errorhandling
-		syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
-	}
-
 #ifdef DEBUG_OUT	
 	syslog(LOG_INFO, "<AESDSOCKET>Server: waiting for connections on port %s", PORT);
 #endif
+
+	bool bTimerStarted = false;
 	
 	while(!caught_sig)
 	{
@@ -337,6 +334,17 @@ int main(int argc, char *argv[])
 		// add the thread to the linked list:
 		SLIST_INSERT_HEAD(&head, th_data, entries);
 		
+		if (bTimerStarted == false)
+		{
+			err_timer = pthread_create(&thread_id_timer, NULL, timer_thread, NULL);
+			if (err_timer != 0)
+			{
+				// TODO: errorhandling
+				syslog(LOG_ERR, "<AESDSOCKET>error in pthread_create, retval = %d", err_timer);
+			}
+			bTimerStarted = true;
+		}
+		
 		datap = SLIST_FIRST(&head);
 		while(datap != NULL)
 		{
@@ -368,7 +376,10 @@ int main(int argc, char *argv[])
 		datap = tmp_datap;
 	}
 
-	pthread_join(thread_id_timer, NULL);
+	if (bTimerStarted)
+	{
+		pthread_join(thread_id_timer, NULL);
+	}
 	
 	close(sockfd);
 	closelog();
