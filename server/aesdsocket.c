@@ -108,12 +108,9 @@ void *threadfunc(void *arg)
 				
 			while ((bytes_read = fread(send_buf, 1, sizeof(send_buf), fout)) > 0) 
 			{
-				if (send(th_arg->new_fd, send_buf, bytes_read, 0) == -1) 
-				{
-					syslog(LOG_ERR, "<AESDSOCKET>failed sending file content back to sender");
-					break;
-				}
+				send(th_arg->new_fd, send_buf, bytes_read, 0);
 			}
+			break;
 				
 			// Seek back to the end so the next append happens correctly
 			fseek(fout, 0, SEEK_END);
