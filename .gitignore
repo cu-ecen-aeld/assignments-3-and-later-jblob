@@ -13,3 +13,4 @@ build
 valgrind-out.txt
 test.sh.log
 buildroot/
+actions-runner/
