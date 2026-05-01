@@ -19,22 +19,30 @@ jobs:
           - name: Run build
             timeout-minutes: 600
             run: |
+               # 1. Clean up potential stale state from the host
+               rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
+               rm -f ${GITHUB_WORKSPACE}/build/hashserv.socket
+               
+               # 2. Run build using the specific '24' tag
                docker run --rm \
                  -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
                  -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
+                 -e BB_SERVER_TIMEOUT=0 \
                  -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
                  cuaesd/aesd-autotest:24-assignment6-yocto \
                  --workdir=${GITHUB_WORKSPACE} \
                  ./build.sh
-          - name: Cleanup
+          - name: Cleanup SSH
             if: always()
             run: |
               ssh-add -D
           - name: Run full test
             timeout-minutes: 15
             run: |
+               # 3. Use the SAME image tag here to avoid metadata mismatch
                docker run --rm \
+                 -e BB_SERVER_TIMEOUT=0 \
                  -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
-                 cuaesd/aesd-autotest:assignment6-yocto \
+                 cuaesd/aesd-autotest:24-assignment6-yocto \
                  --workdir=${GITHUB_WORKSPACE} \
                  ./full-test.sh
