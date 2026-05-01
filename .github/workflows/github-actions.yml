@@ -16,32 +16,31 @@ jobs:
           - uses: webfactory/ssh-agent@v0.5.4
             with:
                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
           - name: Run build
-            timeout-minutes: 600
             run: |
-               # 1. Clean up potential stale state from the host
+               # 1. Surgical cleanup to fix the HashServ and libxcrypt failure
                rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
-               rm -f ${GITHUB_WORKSPACE}/build/hashserv.socket
+               rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/libxcrypt/
                
-               # 2. Run build using the specific '24' tag
+               # 2. Run the build with automated hash server management
                docker run --rm \
                  -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
                  -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
                  -e BB_SERVER_TIMEOUT=0 \
+                 -e BB_HASHSERVE="auto" \
                  -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
                  cuaesd/aesd-autotest:24-assignment6-yocto \
                  --workdir=${GITHUB_WORKSPACE} \
                  ./build.sh
-          - name: Cleanup SSH
-            if: always()
-            run: |
-              ssh-add -D
+
           - name: Run full test
             timeout-minutes: 15
             run: |
-               # 3. Use the SAME image tag here to avoid metadata mismatch
+               # Use identical tag and timeout settings to ensure consistency
                docker run --rm \
                  -e BB_SERVER_TIMEOUT=0 \
+                 -e BB_HASHSERVE="auto" \
                  -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
                  cuaesd/aesd-autotest:24-assignment6-yocto \
                  --workdir=${GITHUB_WORKSPACE} \
