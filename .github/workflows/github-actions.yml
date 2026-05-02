@@ -1,7 +1,5 @@
 name: assignment-test
 
-name: assignment-6-yocto
-
 on:
   push:
     branches:
