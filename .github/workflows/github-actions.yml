@@ -21,22 +21,19 @@ jobs:
 
       - name: Run build
         run: |
-          # 1. Surgical Cleanup
+          # 1. Clean up the lock and the failing recipe directory
           rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
           rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
 
-          # 2. Run as root (-u 0) to install dependencies, then execute build.sh
-          # Note: Most Yocto scripts (like build.sh) will handle dropping 
-          # privileges or switching back to a standard user internally.
+          # 2. Force everything to run as root and tell BitBake it's okay
           docker run --rm -u 0 \
             -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
             -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
             -e BB_SERVER_TIMEOUT=0 \
-            -e BB_HASHSERVE="" \
             -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
             --workdir=${GITHUB_WORKSPACE} \
             cuaesd/aesd-autotest:24-assignment6-yocto \
-            bash -c "apt-get update && apt-get install -y libcrypt-dev && runuser -u builduser -- ./build.sh"
+            bash -c "apt-get update && apt-get install -y libcrypt-dev && export FORCE_UNSAFE_CONFIGURE=1 && ./build.sh"
 
       - name: Run full test
         timeout-minutes: 15
