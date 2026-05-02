@@ -17,29 +17,26 @@ jobs:
             with:
                  ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
- 
+
+
           - name: Run build
             run: |
-               # 1. DEEP Surgical Cleanup
-               # Remove the bitbake lock
+               # Wipe the failed configuration state
                rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
-               
-               # Wipe the entire shadow work directory to clear the "No makefile found" error
                rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
-               
-               # Wipe the stamps for shadow so BitBake is forced to re-run do_configure
                rm -rf ${GITHUB_WORKSPACE}/build/tmp/stamps/cortexa57-poky-linux/shadow
                
-               # 2. Run the build
+               # Run the build
                docker run --rm \
                  -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
                  -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
-                 -e BB_SERVER_TIMEOUT=0 \
-                 -e BB_HASHSERVE="" \
                  -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
                  cuaesd/aesd-autotest:24-assignment6-yocto \
                  --workdir=${GITHUB_WORKSPACE} \
                  ./build.sh
+
+
+ 
  
           - name: Run full test
             timeout-minutes: 15
