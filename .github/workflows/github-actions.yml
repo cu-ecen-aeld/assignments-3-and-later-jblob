@@ -6,8 +6,9 @@ on:
       - '*'
 
 jobs:
-  full-test:
+  yocto-build:
     runs-on: self-hosted
+    timeout-minutes: 360   # 6 Stunden Sicherheitsnetz
 
     steps:
       - name: Checkout repository
@@ -16,19 +17,36 @@ jobs:
           submodules: recursive
           clean: true
 
-      - name: Run Yocto full test (isolated build dirs)
+      - name: Restore Yocto cache (DL + sstate)
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/yocto-cache/downloads
+            ~/yocto-cache/sstate-cache
+          key: yocto-${{ runner.os }}-${{ hashFiles(
+            'meta-aesd/**',
+            '**/*.bb',
+            '**/*.bbappend',
+            '**/local.conf',
+            '**/bblayers.conf'
+          ) }}
+          restore-keys: |
+            yocto-${{ runner.os }}-
+
+      - name: Run Yocto full test (cached)
         shell: bash
         run: |
           set -e
 
-          export YOCTO_DIR=$PWD
-          
-          # Build for qemux86-64
-          export MACHINE=qemux86-64
-          export BUILD_DIR=build-${MACHINE}
-          ./full-test.sh
+          # ---- Yocto cache locations ----
+          export YOCTO_CACHE=$HOME/yocto-cache
+          export DL_DIR=$YOCTO_CACHE/downloads
+          export SSTATE_DIR=$YOCTO_CACHE/sstate-cache
+          mkdir -p "$DL_DIR" "$SSTATE_DIR"
 
-          # Build for qemuarm64
+          # ---- Build configuration ----
           export MACHINE=qemuarm64
           export BUILD_DIR=build-${MACHINE}
+
+          # ---- Run course-provided test ----
           ./full-test.sh
