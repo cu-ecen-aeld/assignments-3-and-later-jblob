@@ -1,50 +1,48 @@
 name: assignment-test
 on:
-  push:
-    tags-ignore:
-      - '*'
-    branches:
-      - '*'
-
+    push:
+        tags-ignore:
+            - '*'
+        branches:
+            - '*'
 jobs:
-  full-test:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          clean: false
-          submodules: 'recursive'
+      full-test:
+        runs-on: self-hosted
+        steps:
+          - uses: actions/checkout@v3
+            with:
+              clean: false
+              submodules: 'recursive'
+          - uses: webfactory/ssh-agent@v0.5.4
+            with:
+                 ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - uses: webfactory/ssh-agent@v0.5.4
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          - name: Run build
+            run: |
+               # 1. Surgical cleanup to fix the HashServ and libxcrypt failure
+               rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
+               rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/libxcrypt/
+               rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/x86_64-linux/file-native
+               
+               # 2. Run the build with automated hash server management
+               docker run --rm \
+                 -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
+                 -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
+                 -e BB_SERVER_TIMEOUT=0 \
+                 -e BB_HASHSERVE="" \
+                 -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
+                 cuaesd/aesd-autotest:24-assignment6-yocto \
+                 --workdir=${GITHUB_WORKSPACE} \
+                 ./build.sh
 
-
-
-      - name: Run build
-        run: |
-          # 1. Clean up stale locks
-          rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
-          rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
-
-          # 2. The Final Attempt
-          docker run --rm -u 0 \
-            -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
-            -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
-            --workdir=${GITHUB_WORKSPACE} \
-            cuaesd/aesd-autotest:24-assignment6-yocto \
-            bash -c "apt-get update && apt-get install -y libcrypt-dev && chown -R 1000:1000 . && sudo -u #1000 ./build.sh"
-
-
-
-
-      - name: Run full test
-        timeout-minutes: 15
-        run: |
-          docker run --rm \
-            -e BB_SERVER_TIMEOUT=0 \
-            -e BB_HASHSERVE="" \
-            -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
-            --workdir=${GITHUB_WORKSPACE} \
-            cuaesd/aesd-autotest:24-assignment6-yocto \
-            ./full-test.sh
+          - name: Run full test
+            timeout-minutes: 15
+            run: |
+               # Use identical tag and timeout settings to ensure consistency
+               docker run --rm \
+                 -e BB_SERVER_TIMEOUT=0 \
+                 -e BB_HASHSERVE="" \
+                 -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
+                 cuaesd/aesd-autotest:24-assignment6-yocto \
+                 --workdir=${GITHUB_WORKSPACE} \
+                 ./full-test.sh
