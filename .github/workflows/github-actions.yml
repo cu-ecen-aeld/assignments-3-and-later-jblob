@@ -19,14 +19,19 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+
       - name: Run build
         run: |
           # 1. Clean up any existing locks
           rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
           
-          # 2. Targeted wipe of the shadow recipe's work directory 
-          # Forces re-run of do_configure to pick up libxcrypt changes
-          rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
+          # 2. Force BitBake to completely wipe the shadow recipe's state
+          # This is more effective than rm -rf because it clears the sstate-cache
+          docker run --rm \
+            -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
+            cuaesd/aesd-autotest:24-assignment6-yocto \
+            --workdir=${GITHUB_WORKSPACE} \
+            bash -c "source poky/oe-init-build-env build && bitbake -c cleansstate shadow"
           
           # 3. Run the actual build script
           docker run --rm \
@@ -36,6 +41,8 @@ jobs:
             cuaesd/aesd-autotest:24-assignment6-yocto \
             --workdir=${GITHUB_WORKSPACE} \
             ./build.sh
+
+
 
       - name: Run full test
         timeout-minutes: 15
