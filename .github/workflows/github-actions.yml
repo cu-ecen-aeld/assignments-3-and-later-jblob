@@ -1,5 +1,7 @@
 name: assignment-test
 
+name: assignment-6-yocto
+
 on:
   push:
     branches:
@@ -8,7 +10,7 @@ on:
 jobs:
   yocto-build:
     runs-on: self-hosted
-    timeout-minutes: 360   # 6 Stunden Sicherheitsnetz
+    timeout-minutes: 360   # 6 Stunden
 
     steps:
       - name: Checkout repository
@@ -23,13 +25,7 @@ jobs:
           path: |
             ~/yocto-cache/downloads
             ~/yocto-cache/sstate-cache
-          key: yocto-${{ runner.os }}-${{ hashFiles(
-            'meta-aesd/**',
-            '**/*.bb',
-            '**/*.bbappend',
-            '**/local.conf',
-            '**/bblayers.conf'
-          ) }}
+          key: yocto-${{ runner.os }}-${{ hashFiles('meta-aesd/**', '**/*.bb', '**/*.bbappend', '**/local.conf', '**/bblayers.conf') }}
           restore-keys: |
             yocto-${{ runner.os }}-
 
@@ -38,15 +34,14 @@ jobs:
         run: |
           set -e
 
-          # ---- Yocto cache locations ----
+          # Cache-Verzeichnisse
           export YOCTO_CACHE=$HOME/yocto-cache
           export DL_DIR=$YOCTO_CACHE/downloads
           export SSTATE_DIR=$YOCTO_CACHE/sstate-cache
           mkdir -p "$DL_DIR" "$SSTATE_DIR"
 
-          # ---- Build configuration ----
+          # Build-Konfiguration
           export MACHINE=qemuarm64
           export BUILD_DIR=build-${MACHINE}
 
-          # ---- Run course-provided test ----
           ./full-test.sh
