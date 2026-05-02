@@ -25,10 +25,10 @@ jobs:
           rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
           rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
 
-          # 2. Run the build
-          # We use 'sudo -n' (non-interactive) to fail fast if it asks for a password,
-          # or simply try without sudo if the container user is already root.
-          docker run --rm \
+          # 2. Run as root (-u 0) to install dependencies, then execute build.sh
+          # Note: Most Yocto scripts (like build.sh) will handle dropping 
+          # privileges or switching back to a standard user internally.
+          docker run --rm -u 0 \
             -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
             -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
             -e BB_SERVER_TIMEOUT=0 \
@@ -36,7 +36,8 @@ jobs:
             -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
             --workdir=${GITHUB_WORKSPACE} \
             cuaesd/aesd-autotest:24-assignment6-yocto \
-            bash -c "sudo apt-get update && sudo apt-get install -y libcrypt-dev && ./build.sh"
+            bash -c "apt-get update && apt-get install -y libcrypt-dev && runuser -u builduser -- ./build.sh"
+
       - name: Run full test
         timeout-minutes: 15
         run: |
