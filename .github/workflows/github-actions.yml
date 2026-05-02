@@ -21,31 +21,32 @@ jobs:
 
           - name: Run build
             run: |
-               # Wipe the failed configuration state
-               rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
-               rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
-               rm -rf ${GITHUB_WORKSPACE}/build/tmp/stamps/cortexa57-poky-linux/shadow
-               
-               # Run the build
-               docker run --rm \
-                 -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
-                 -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
-                 -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
-                 cuaesd/aesd-autotest:24-assignment6-yocto \
-                 --workdir=${GITHUB_WORKSPACE} \
-                 ./build.sh
-
+            # 1. Clean up any existing locks
+            rm -f ${GITHUB_WORKSPACE}/build/bitbake.lock
+          
+            # 2. Targeted wipe of the shadow recipe's work directory 
+            # This forces a fresh do_configure with your new local.conf settings
+            rm -rf ${GITHUB_WORKSPACE}/build/tmp/work/cortexa57-poky-linux/shadow
+          
+            # 3. Run the actual build script
+            docker run --rm \
+            -v $SSH_AUTH_SOCK:/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent \
+            -e GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" \
+            -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
+            cuaesd/aesd-autotest:24-assignment6-yocto \
+            --workdir=${GITHUB_WORKSPACE} \
+            ./build.sh
 
  
  
           - name: Run full test
             timeout-minutes: 15
             run: |
-               # Use identical tag and timeout settings to ensure consistency
-               docker run --rm \
-                 -e BB_SERVER_TIMEOUT=0 \
-                 -e BB_HASHSERVE="" \
-                 -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
-                 cuaesd/aesd-autotest:24-assignment6-yocto \
-                 --workdir=${GITHUB_WORKSPACE} \
-                 ./full-test.sh
+            # Use identical tag and timeout settings to ensure consistency
+            docker run --rm \
+              -e BB_SERVER_TIMEOUT=0 \
+              -e BB_HASHSERVE="" \
+              -v ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE} \
+              cuaesd/aesd-autotest:24-assignment6-yocto \
+              --workdir=${GITHUB_WORKSPACE} \
+              ./full-test.sh
