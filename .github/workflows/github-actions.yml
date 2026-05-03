@@ -8,7 +8,7 @@ on:
 jobs:
   yocto-build:
     runs-on: self-hosted
-    timeout-minutes: 360   # 6 Stunden
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repository
@@ -23,7 +23,7 @@ jobs:
           path: |
             ~/yocto-cache/downloads
             ~/yocto-cache/sstate-cache
-          key: yocto-${{ runner.os }}-${{ hashFiles('meta-aesd/**', '**/*.bb', '**/*.bbappend', '**/local.conf', '**/bblayers.conf') }}
+          key: yocto-${{ runner.os }}-poky
           restore-keys: |
             yocto-${{ runner.os }}-
 
@@ -32,14 +32,19 @@ jobs:
         run: |
           set -e
 
-          # Cache-Verzeichnisse
           export YOCTO_CACHE=$HOME/yocto-cache
           export DL_DIR=$YOCTO_CACHE/downloads
           export SSTATE_DIR=$YOCTO_CACHE/sstate-cache
           mkdir -p "$DL_DIR" "$SSTATE_DIR"
 
-          # Build-Konfiguration
           export MACHINE=qemuarm64
           export BUILD_DIR=build-${MACHINE}
+
+          mkdir -p build-${MACHINE}/conf
+          CONF=build-${MACHINE}/conf/local.conf
+
+          echo 'DL_DIR = "${HOME}/yocto-cache/downloads"' >> $CONF
+          echo 'SSTATE_DIR = "${HOME}/yocto-cache/sstate-cache"' >> $CONF
+          sed -i '/^BB_HASHSERVE/d' $CONF
 
           ./full-test.sh
