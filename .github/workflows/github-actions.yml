@@ -17,34 +17,39 @@ jobs:
           submodules: recursive
           clean: true
 
-      - name: Restore Yocto cache (DL + sstate)
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/yocto-cache/downloads
-            ~/yocto-cache/sstate-cache
-          key: yocto-${{ runner.os }}-poky
-          restore-keys: |
-            yocto-${{ runner.os }}-
-
-      - name: Run Yocto full test (cached)
+      - name: Run Yocto build using persistent sstate
         shell: bash
         run: |
           set -e
 
-          export YOCTO_CACHE=$HOME/yocto-cache
-          export DL_DIR=$YOCTO_CACHE/downloads
-          export SSTATE_DIR=$YOCTO_CACHE/sstate-cache
-          mkdir -p "$DL_DIR" "$SSTATE_DIR"
+          # --------------------------------------------------
+          # PERSISTENTER CACHE (bereits vorhanden!)
+          # --------------------------------------------------
+          export DL_DIR=/home/jblob/yocto-cache/downloads
+          export SSTATE_DIR=/home/jblob/yocto-cache/sstate-cache
+          export BB_ENV_PASSTHROUGH_ADDITIONS="DL_DIR SSTATE_DIR"
 
+          echo "Using DL_DIR=$DL_DIR"
+          echo "Using SSTATE_DIR=$SSTATE_DIR"
+          ls -d $SSTATE_DIR/* | head
+
+          # --------------------------------------------------
+          # PERSISTENTER BUILD-ORDNER (WICHTIG)
+          # --------------------------------------------------
           export MACHINE=qemuarm64
-          export BUILD_DIR=build-${MACHINE}
+          export BUILD_DIR=/home/jblob/yocto-build-${MACHINE}
 
-          mkdir -p build-${MACHINE}/conf
-          CONF=build-${MACHINE}/conf/local.conf
+          # Build-Verzeichnis bleibt zwischen Runs bestehen
+          mkdir -p $BUILD_DIR/conf
 
-          echo 'DL_DIR = "${HOME}/yocto-cache/downloads"' >> $CONF
-          echo 'SSTATE_DIR = "${HOME}/yocto-cache/sstate-cache"' >> $CONF
+          # local.conf sicher setzen
+          CONF=$BUILD_DIR/conf/local.conf
+          echo 'DL_DIR = "/home/jblob/yocto-cache/downloads"' >> $CONF
+          echo 'SSTATE_DIR = "/home/jblob/yocto-cache/sstate-cache"' >> $CONF
           sed -i '/^BB_HASHSERVE/d' $CONF
 
+          # --------------------------------------------------
+          # TEST AUSFÜHREN
+          # --------------------------------------------------
           ./full-test.sh
+``
