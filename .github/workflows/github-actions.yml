@@ -31,7 +31,6 @@ jobs:
 
           echo "Using DL_DIR=$DL_DIR"
           echo "Using SSTATE_DIR=$SSTATE_DIR"
-          ls -d $SSTATE_DIR/* | head
 
           # --------------------------------------------------
           # PERSISTENTER BUILD-ORDNER (WICHTIG)
