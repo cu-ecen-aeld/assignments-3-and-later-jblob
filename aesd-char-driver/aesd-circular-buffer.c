@@ -29,10 +29,43 @@
 struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct aesd_circular_buffer *buffer,
             size_t char_offset, size_t *entry_offset_byte_rtn )
 {
-    /**
-    * TODO: implement per description
-    */
-    return NULL;
+    // if buffer is empty we can return immediately
+    if ((!buffer->full) && (buffer->in_offs == buffer->out_offs))
+    {
+		return NULL;
+	}
+    
+    size_t max_valid_entry;
+    size_t ctr = 0;
+    size_t idx = buffer->out_offs;
+    
+    // calculate valid entries in buffer
+    if (buffer->full)
+    {
+		max_valid_entry = AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+	}
+	else
+	{
+		max_valid_entry = (buffer->in_offs + AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED - buffer->out_offs) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+
+	}
+	
+    while (ctr < max_valid_entry) 
+    {
+        struct aesd_buffer_entry *entry = &buffer->entry[idx];
+
+        if (char_offset < entry->size) 
+        {
+            *entry_offset_byte_rtn = char_offset;
+            return entry;
+        }
+
+        char_offset -= entry->size;
+        idx = (idx + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+        ctr++;
+    }
+    
+    return NULL; // (offset larger zhan available data)
 }
 
 /**
@@ -44,9 +77,22 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 */
 void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
-    /**
-    * TODO: implement per description
-    */
+	buffer->entry[buffer->in_offs] = *add_entry;
+
+	// increase write pointer
+	buffer->in_offs = (buffer->in_offs+1)%AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+	
+	// if buffer is full: advance read pointer // red pointer mitziehen
+    if (buffer->full == true)
+    {
+		buffer->out_offs = (buffer->out_offs+1)%AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+	}
+	
+	// check if full flag needs to be set
+	if (buffer->in_offs == buffer->out_offs)
+	{
+		buffer->full = true;
+	}
 }
 
 /**
