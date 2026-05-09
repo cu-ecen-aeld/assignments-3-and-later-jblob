@@ -16,7 +16,7 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
 
-      - name: Install Yocto dependencies
+      - name: Install dependencies + fix locale
         run: |
           apt-get update || true
           apt-get install -y \
@@ -31,7 +31,11 @@ jobs:
             build-essential \
             locales || true
 
-          locale-gen en_US.UTF-8 || true
+          # 🔥 WICHTIG: locale aktivieren
+          echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+          locale-gen
+
+          update-locale LANG=en_US.UTF-8
 
       - name: Create non-root user
         run: |
@@ -44,5 +48,6 @@ jobs:
             export LANG=en_US.UTF-8
             export LC_ALL=en_US.UTF-8
             export LANGUAGE=en_US.UTF-8
+            locale
             ./full-test.sh
           "
