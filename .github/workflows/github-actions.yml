@@ -25,6 +25,7 @@ jobs:
             diffstat \
             lz4 \
             zstd \
+            pzstd \
             python3 \
             unzip \
             build-essential \
@@ -32,10 +33,16 @@ jobs:
 
           locale-gen en_US.UTF-8 || true
 
+      - name: Create non-root user
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
+
       - name: Run full test
         run: |
-          export LANG=en_US.UTF-8
-          export LC_ALL=en_US.UTF-8
-          export LANGUAGE=en_US.UTF-8
-
-          ./full-test.sh
+          su builder -c "
+            export LANG=en_US.UTF-8
+            export LC_ALL=en_US.UTF-8
+            export LANGUAGE=en_US.UTF-8
+            ./full-test.sh
+          "
