@@ -3,6 +3,18 @@
 case "$1" in
 start)
     echo "Loading LDD modules"
+    
+    # create device nodes
+
+    # scull
+    rm -f /dev/scull*
+    mknod /dev/scull c 248 0
+    mknod /dev/scullp c 248 1
+    mknod /dev/sculla c 248 2
+
+    # faulty
+    rm -f /dev/faulty
+    mknod /dev/faulty c 247 0
 
     # load modules
     modprobe scull
