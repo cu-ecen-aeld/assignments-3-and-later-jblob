@@ -10,21 +10,27 @@ jobs:
     runs-on: self-hosted
 
     container:
-        image: cuaesd/aesd-autotest:24-assignment7-buildroot
-        options: -u 1000:1000 -v /home/jblob/yocto-cache:/yocto-cache -v /home/jblob/yocto-build:/build
-  
+      image: cuaesd/aesd-autotest:24-assignment7-buildroot
+      options: -v /home/jblob/yocto-cache:/yocto-cache -v /home/jblob/yocto-build:/build
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Checkout submodules
         run: git submodule update --init --recursive
 
-      - name: Install dependencies
+      - name: Install dependencies + locale (root)
         run: |
-          apt-get update || true
-          apt-get install -y \
-            gawk chrpath diffstat lz4 zstd unzip \
-            python3 python3-distutils build-essential locales || true
+          apt-get update
+          apt-get install -y locales python3-distutils
+
+          echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+          locale-gen
+
+      - name: Create non-root user
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
 
       - name: Setup Yocto cache
         run: |
@@ -32,9 +38,10 @@ jobs:
           echo 'DL_DIR = "/yocto-cache/downloads"' >> build/conf/local.conf
           echo 'SSTATE_DIR = "/yocto-cache/sstate-cache"' >> build/conf/local.conf
 
-      - name: Run full test
+      - name: Run full test (non-root)
         run: |
-          export LANG=C.UTF-8
-          export LC_ALL=C.UTF-8
-          export LANGUAGE=C.UTF-8
-          ./full-test.sh
+          su builder -c "
+            export LANG=en_US.UTF-8
+            export LC_ALL=en_US.UTF-8
+            ./full-test.sh
+          "
