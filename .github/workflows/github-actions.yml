@@ -49,7 +49,6 @@ jobs:
       - name: Create non-root user
         run: |
           useradd -m builder
-          chown -R builder:builder /__w
           chown -R builder:builder /build || true
 
       - name: Run full test
