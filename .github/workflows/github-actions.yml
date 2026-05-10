@@ -11,10 +11,8 @@ jobs:
 
     container:
       image: cuaesd/aesd-autotest:24-assignment7-buildroot
-      options: |
-        -v /home/jblob/yocto-cache:/yocto-cache
-        -v /home/jblob/yocto-build:/build
-
+      options: -v /home/jblob/yocto-cache:/yocto-cache -v /home/jblob/yocto-build:/build
+  
     steps:
       - uses: actions/checkout@v2
 
