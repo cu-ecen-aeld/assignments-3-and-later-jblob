@@ -26,11 +26,6 @@ jobs:
             gawk chrpath diffstat lz4 zstd unzip \
             python3 python3-distutils build-essential locales || true
 
-      - name: Setup locale
-        run: |
-          echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
-          dpkg-reconfigure --frontend=noninteractive locales
-
       - name: Setup Yocto cache
         run: |
           mkdir -p build/conf
@@ -39,6 +34,7 @@ jobs:
 
       - name: Run full test
         run: |
-          export LANG=en_US.UTF-8
-          export LC_ALL=en_US.UTF-8
+          export LANG=C.UTF-8
+          export LC_ALL=C.UTF-8
+          export LANGUAGE=C.UTF-8
           ./full-test.sh
