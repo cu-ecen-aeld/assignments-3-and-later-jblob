@@ -8,7 +8,12 @@ on:
 jobs:
   full-test:
     runs-on: self-hosted
-    container: cuaesd/aesd-autotest:24-assignment7-buildroot
+
+    container:
+      image: cuaesd/aesd-autotest:24-assignment7-buildroot
+      options: |
+        -v /home/jblob/yocto-cache:/yocto-cache
+        -v /home/jblob/yocto-build:/build
 
     steps:
       - uses: actions/checkout@v2
@@ -31,15 +36,23 @@ jobs:
             build-essential \
             locales || true
 
-      - name: Generate locale
+      - name: Setup locale
         run: |
           echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
           dpkg-reconfigure --frontend=noninteractive locales
 
+      - name: Setup Yocto cache
+        run: |
+          mkdir -p /build/conf
+
+          echo 'DL_DIR = "/yocto-cache/downloads"' >> /build/conf/local.conf
+          echo 'SSTATE_DIR = "/yocto-cache/sstate-cache"' >> /build/conf/local.conf
+
       - name: Create non-root user
         run: |
           useradd -m builder
-          chown -R builder:builder .
+          chown -R builder:builder /__w
+          chown -R builder:builder /build || true
 
       - name: Run full test
         run: |
@@ -47,5 +60,5 @@ jobs:
             export LANG=en_US.UTF-8
             export LC_ALL=en_US.UTF-8
             export LANGUAGE=en_US.UTF-8
-            SKIP_BUILD=1 ./full-test.sh
+            ./full-test.sh
           "
