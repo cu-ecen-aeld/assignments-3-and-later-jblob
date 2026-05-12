@@ -27,7 +27,7 @@ jobs:
           echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
           locale-gen
 
-      - name: Setup builder user and persistent workspace
+      - name: Setup builder user and workspace
         run: |
           useradd -m builder || true
           rm -rf build
@@ -35,7 +35,7 @@ jobs:
           mkdir -p build/conf
           chown -R builder:builder build /build /yocto-cache || true
 
-      - name: Setup Yocto cache and persistent TMPDIR
+      - name: Setup Yocto cache
         run: |
           su builder -c "
             if [ ! -f build/conf/local.conf ]; then
@@ -59,23 +59,12 @@ jobs:
             echo "BBLAYERS += \"${LAYER_PATH}\"" >> build/conf/bblayers.conf
           '
 
-      - name: Run full test with forced QEMU port
+      - name: Run full test
         run: |
           su builder -c "
             export LANG=en_US.UTF-8
             export LC_ALL=en_US.UTF-8
             export HOME=/home/builder
-
-            mkdir -p \$HOME/bin
-
-            echo '#!/bin/bash' > \$HOME/bin/runqemu
-            echo 'REAL_RUNQEMU=\$(command -v runqemu)' >> \$HOME/bin/runqemu
-            echo 'echo \"[Wrapper] Forcing SSH port 10022\" >&2' >> \$HOME/bin/runqemu
-            echo 'exec \$REAL_RUNQEMU \"\$@\" nographic slirp hostfwd=tcp::10022-:22' >> \$HOME/bin/runqemu
-
-            chmod +x \$HOME/bin/runqemu
-
-            export PATH=\$HOME/bin:\$PATH
 
             ./full-test.sh
           "
