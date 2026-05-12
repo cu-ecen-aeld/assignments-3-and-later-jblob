@@ -1,1 +1,1 @@
-assignment7-buildroot
+assignment7-yocto
