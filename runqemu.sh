@@ -2,11 +2,10 @@
 # Umgebung laden
 source poky/oe-init-build-env build
 
-# Wir nutzen QEMU_EXTRA_ARGS für das Port-Forwarding, falls nicht schon in der Shell gesetzt
-if [ -z "$QEMU_EXTRA_ARGS" ]; then
-    export QEMU_EXTRA_ARGS="-netdev user,id=net0,hostfwd=tcp::10022-:22 -device virtio-net-pci,netdev=net0"
-fi
+# Wir löschen QEMU_EXTRA_ARGS, falls sie von außen kommen, 
+# um Konflikte mit der local.conf zu vermeiden
+export QEMU_EXTRA_ARGS=""
 
-# Starte QEMU
-# Wir lassen 'slirp' weg, da wir das Interface oben manuell via QEMU_EXTRA_ARGS definieren
-runqemu nographic
+# Starte QEMU mit nographic.
+# Das 'slirp' Kommando triggert die QB_SLIRP_OPT aus der local.conf korrekt an.
+runqemu nographic slirp

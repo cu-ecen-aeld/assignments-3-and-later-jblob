@@ -44,7 +44,7 @@ jobs:
             mkdir -p build/conf
             [ -f build/conf/local.conf ] || echo 'CONF_VERSION = \"2\"' > build/conf/local.conf
             
-            # Alte Einträge säubern
+            # Alte Einträge säubern, um Konflikte zu vermeiden
             sed -i '/DL_DIR/d; /SSTATE_DIR/d; /TMPDIR/d; /MACHINE/d; /QB_SLIRP_OPT/d' build/conf/local.conf
             
             echo 'DL_DIR = \"/yocto-cache/downloads\"' >> build/conf/local.conf
@@ -52,8 +52,10 @@ jobs:
             echo 'TMPDIR = \"/build/tmp\"' >> build/conf/local.conf
             echo 'MACHINE = \"qemuarm64\"' >> build/conf/local.conf
             
-            # KORRIGIERTE SYNTAX: Wir lassen QB_SLIRP_OPT weg und nutzen die Standard-Umgebungsvariable für runqemu
-            # Das ist sicherer gegenüber verschiedenen Yocto-Versionen.
+            # Wir nutzen die saubere QB_SLIRP_OPT Syntax für Kirkstone/mickledore
+            echo 'QB_SLIRP_OPT = \"hostfwd=tcp::10022-:22\"' >> build/conf/local.conf
+
+            # bblayers reset
             rm -f build/conf/bblayers.conf
           "
 
@@ -65,13 +67,13 @@ jobs:
             export LC_ALL=en_US.UTF-8
             export HOME=/home/builder
             
-            # WICHTIG: Wir setzen den Port-Forward hier als Umgebungsvariable
-            export QEMU_EXTRA_ARGS='-netdev user,id=net0,hostfwd=tcp::10022-:22 -device virtio-net-pci,netdev=net0'
-            
             WORKSPACE=\$(pwd)
             source poky/oe-init-build-env build
+            
+            # Layer mit absolutem Pfad hinzufügen
             bitbake-layers add-layer \${WORKSPACE}/meta-aesd
             
+            # Den Test im Root starten
             cd \${WORKSPACE}
             ./full-test.sh
           "
