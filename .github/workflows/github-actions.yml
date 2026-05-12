@@ -27,26 +27,32 @@ jobs:
           echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
           locale-gen
 
-      - name: Setup builder user and permissions
+      - name: Setup builder user and persistent workspace
         run: |
-          # User erstellen falls nicht vorhanden
           useradd -m builder || true
-          
-          # Build-Ordner VOR dem chown erstellen
+          # Verknüpfung zum Laptop-Volume herstellen
+          rm -rf build
+          ln -s /build build
           mkdir -p build/conf
-          
-          # Berechtigungen für den gesamten Workspace setzen
-          # Dies behebt die 'Permission denied' Fehler bei .git und bitbake.lock
           chown -R builder:builder .
-          
-          # Optional: Falls der Cache-Mount Schreibrechte benötigt
+          chown -R builder:builder /build
           chown -R builder:builder /yocto-cache || true
 
-      - name: Setup Yocto cache
+      - name: Setup Yocto cache and persistent TMPDIR
         run: |
           su builder -c "
+            if [ ! -f build/conf/local.conf ]; then
+              echo 'CONF_VERSION = \"2\"' > build/conf/local.conf
+            fi
+            
+            # paths for downloads und SSTATE-Cache
+            sed -i '/DL_DIR/d' build/conf/local.conf
+            sed -i '/SSTATE_DIR/d' build/conf/local.conf
+            sed -i '/TMPDIR/d' build/conf/local.conf
+            
             echo 'DL_DIR = \"/yocto-cache/downloads\"' >> build/conf/local.conf
             echo 'SSTATE_DIR = \"/yocto-cache/sstate-cache\"' >> build/conf/local.conf
+            echo 'TMPDIR = \"/build/tmp\"' >> build/conf/local.conf
           "
 
       - name: Run full test
@@ -55,5 +61,6 @@ jobs:
             export LANG=en_US.UTF-8
             export LC_ALL=en_US.UTF-8
             export HOME=/home/builder
+            export QEMU_EXTRA_ARGS='hostfwd=tcp::10022-:22'
             ./full-test.sh
           "
