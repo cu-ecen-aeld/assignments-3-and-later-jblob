@@ -61,3 +61,56 @@ CR0: 80050033 CR2: c9800fd8 CR3: 01847000 CR4: 00000690
 
 Welcome to Buildroot
 buildroot login:
+
+
+the test with the yocto environment:
+
+
+root@qemuarm64:~# echo "Hallo Juergen" >/dev/faulty
+[  864.149814] Unable to handle kernel NULL pointer dereference at virtual address 0000000000000000
+[  864.165711] Mem abort info:
+[  864.167707]   ESR = 0x0000000096000045
+[  864.167859]   EC = 0x25: DABT (current EL), IL = 32 bits
+[  864.167993]   SET = 0, FnV = 0
+[  864.168066]   EA = 0, S1PTW = 0
+[  864.168144]   FSC = 0x05: level 1 translation fault
+[  864.168264] Data abort info:
+[  864.168391]   ISV = 0, ISS = 0x00000045
+[  864.168508]   CM = 0, WnR = 1
+[  864.168723] user pgtable: 4k pages, 39-bit VAs, pgdp=00000000436cc000
+[  864.168942] [0000000000000000] pgd=0000000000000000, p4d=0000000000000000, pud=0000000000000000
+[  864.169460] Internal error: Oops: 0000000096000045 [#1] PREEMPT SMP
+[  864.170095] Modules linked in: faulty(O) hello(O) scull(O)
+[  864.170631] CPU: 3 PID: 418 Comm: sh Tainted: G           O      5.15.201-yocto-standard #1
+[  864.170944] Hardware name: linux,dummy-virt (DT)
+[  864.171365] pstate: 80000005 (Nzcv daif -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[  864.171573] pc : faulty_write+0x18/0x20 [faulty]
+[  864.172118] lr : vfs_write+0xf8/0x2a0
+[  864.172266] sp : ffffffc00b81bd80
+[  864.172356] x29: ffffffc00b81bd80 x28: ffffff8003692940 x27: 0000000000000000
+[  864.172606] x26: 0000000000000000 x25: 0000000000000000 x24: 0000000000000000
+[  864.172791] x23: 0000000000000000 x22: ffffffc00b81bdc0 x21: 000000558d6eb9b0
+[  864.172992] x20: ffffff800340b600 x19: 000000000000000e x18: 0000000000000000
+[  864.173200] x17: 0000000000000000 x16: 0000000000000000 x15: 0000000000000000
+[  864.173393] x14: 0000000000000000 x13: 0000000000000000 x12: 0000000000000000
+[  864.173581] x11: 0000000000000000 x10: 0000000000000000 x9 : ffffffc008272378
+[  864.194144] x8 : 0000000000000000 x7 : 0000000000000000 x6 : 0000000000000000
+[  864.196314] x5 : 0000000000000001 x4 : ffffffc000bb7000 x3 : ffffffc00b81bdc0
+[  864.198578] x2 : 000000000000000e x1 : 0000000000000000 x0 : 0000000000000000
+[  864.201808] Call trace:
+[  864.202142]  faulty_write+0x18/0x20 [faulty]
+[  864.202499]  ksys_write+0x74/0x110
+[  864.202725]  __arm64_sys_write+0x24/0x30
+[  864.203459]  invoke_syscall+0x5c/0x130
+[  864.204302]  el0_svc_common.constprop.0+0x4c/0x100
+[  864.206234]  do_el0_svc+0x4c/0xc0
+[  864.206450]  el0_svc+0x28/0x80
+[  864.206670]  el0t_64_sync_handler+0xa4/0x130
+[  864.207120]  el0t_64_sync+0x1a0/0x1a4
+[  864.208758] Code: d2800001 d2800000 d503233f d50323bf (b900003f)
+[  864.209554] ---[ end trace 89a923017286ee99 ]---
+Segmentation fault
+
+Poky (Yocto Project Reference Distro) 4.0.35 qemuarm64 /dev/ttyAMA0
+
+qemuarm64 login:

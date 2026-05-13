@@ -1,0 +1,40 @@
+#!/bin/sh
+
+KVER=$(uname -r)
+MOD_DIR="/lib/modules/$KVER/extra"
+
+case "$1" in
+    start)
+        echo "Loading LDD modules..."
+        insmod $MOD_DIR/hello.ko 2>/dev/null
+        insmod $MOD_DIR/scull.ko 2>/dev/null
+        insmod $MOD_DIR/faulty.ko 2>/dev/null
+
+        # Major Numbers extrahieren und Nodes erstellen
+		SCULL_MAJOR=$(grep "scull" /proc/devices | head -n 1 | awk '{print $1}')
+		if [ -z "$SCULL_MAJOR" ]; then
+			echo "Could not find major number for scull"
+		else
+			mknod /dev/scull c $SCULL_MAJOR 0
+			chmod 666 /dev/scull
+		fi
+
+        FAULTY_MAJOR=$(grep "faulty" /proc/devices | awk '{print $1}')
+        if [ -n "$FAULTY_MAJOR" ]; then
+            rm -f /dev/faulty
+            mknod /dev/faulty c $FAULTY_MAJOR 0
+            chmod 666 /dev/faulty
+        fi
+        ;;
+    stop)
+        echo "Unloading LDD modules..."
+        rmmod faulty 2>/dev/null
+        rmmod scull 2>/dev/null
+        rmmod hello 2>/dev/null
+        rm -f /dev/scull /dev/faulty
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+esac
+exit 0
