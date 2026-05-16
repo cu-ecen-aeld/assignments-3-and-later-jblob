@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Checkout submodules
         run: git submodule update --init --recursive
@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies + locale
         run: |
           apt-get update
-          apt-get install -y locales python3-distutils gawk chrpath diffstat lz4 zstd unzip build-essential
+          apt-get install -y locales python3-distutils gawk chrpath diffstat lz4 zstd unzip build-essential socat
           echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
           locale-gen
 
@@ -37,30 +37,31 @@ jobs:
           chown -R builder:builder /build
           chown -R builder:builder /yocto-cache || true
 
+      - name: Start port forward (10022 -> 2222)
+        run: |
+          # start socat in background (retry loop)
+          (while true; do
+             socat TCP-LISTEN:10022,fork TCP:localhost:2222
+             sleep 1
+           done) &
+
       - name: Repair and Configure Yocto
         shell: bash
         run: |
           su builder -s /bin/bash -c "
             mkdir -p build/conf
             [ -f build/conf/local.conf ] || echo 'CONF_VERSION = \"2\"' > build/conf/local.conf
-            
-            # Alte Einträge entfernen
-            sed -i '/DL_DIR/d; /SSTATE_DIR/d; /TMPDIR/d; /MACHINE/d; /QB_SLIRP_OPT/d' build/conf/local.conf
-            
+
+            sed -i '/DL_DIR/d; /SSTATE_DIR/d; /TMPDIR/d; /MACHINE/d' build/conf/local.conf
+
             echo 'DL_DIR = \"/yocto-cache/downloads\"' >> build/conf/local.conf
             echo 'SSTATE_DIR = \"/yocto-cache/sstate-cache\"' >> build/conf/local.conf
             echo 'TMPDIR = \"/build/tmp\"' >> build/conf/local.conf
             echo 'MACHINE = \"qemuarm64\"' >> build/conf/local.conf
             echo 'EXTRA_IMAGE_FEATURES = \"debug-tweaks\"' >> build/conf/local.conf
-            # Speziell für neuere Yocto-Versionen:
             echo 'INHERIT += \"extrausers\"' >> build/conf/local.conf
             echo 'EXTRA_USERS_PARAMS = \"usermod -p \\\"\\\" root;\"' >> build/conf/local.conf
-                        
-            # WICHTIG: Die exakte Syntax für QEMU Networking in Yocto
-            # Wir definieren das gesamte user-Netzwerk-Backend inklusive Port-Forwarding neu
-            echo 'QB_SLIRP_OPT = \"-netdev user,id=net0,hostfwd=tcp::10022-:22\"' >> build/conf/local.conf
 
-            # bblayers reset
             rm -f build/conf/bblayers.conf
           "
 
@@ -71,14 +72,12 @@ jobs:
             export LANG=en_US.UTF-8
             export LC_ALL=en_US.UTF-8
             export HOME=/home/builder
-            
-            WORKSPACE=\$(pwd)
+
+            WORKSPACE=$(pwd)
             source poky/oe-init-build-env build
-            
-            # Layer hinzufügen
-            bitbake-layers add-layer \${WORKSPACE}/meta-aesd
-            
-            # Test starten
-            cd \${WORKSPACE}
+
+            bitbake-layers add-layer ${WORKSPACE}/meta-aesd
+
+            cd ${WORKSPACE}
             ./full-test.sh
           "
