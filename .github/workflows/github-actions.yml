@@ -44,18 +44,28 @@ jobs:
              sleep 1
            done) &
 
-      - name: Configure Yocto
+      - name: Configure Yocto with full cache support
         shell: bash
         run: |
           su builder -s /bin/bash -c "
             mkdir -p build/conf
+
             [ -f build/conf/local.conf ] || echo 'CONF_VERSION = \"2\"' > build/conf/local.conf
 
-            sed -i '/DL_DIR/d; /SSTATE_DIR/d; /TMPDIR/d; /MACHINE/d' build/conf/local.conf
+            # Clean previous entries
+            sed -i '/DL_DIR/d; /SSTATE_DIR/d; /SSTATE_MIRRORS/d; /TMPDIR/d; /MACHINE/d' build/conf/local.conf
 
+            # ✅ Download cache
             echo 'DL_DIR = \"/yocto-cache/downloads\"' >> build/conf/local.conf
+
+            # ✅ Shared sstate cache (MOST IMPORTANT)
             echo 'SSTATE_DIR = \"/yocto-cache/sstate-cache\"' >> build/conf/local.conf
+            echo 'SSTATE_MIRRORS = \"file:///yocto-cache/sstate-cache/PATH\"' >> build/conf/local.conf
+
+            # ✅ Persistent build output
             echo 'TMPDIR = \"/build/tmp\"' >> build/conf/local.conf
+
+            # Standard settings
             echo 'MACHINE = \"qemuarm64\"' >> build/conf/local.conf
             echo 'EXTRA_IMAGE_FEATURES = \"debug-tweaks\"' >> build/conf/local.conf
             echo 'INHERIT += \"extrausers\"' >> build/conf/local.conf
@@ -70,7 +80,7 @@ jobs:
             export LC_ALL=en_US.UTF-8
             export HOME=/home/builder
 
-            # IMPORTANT: escape for su
+            # ✅ capture repo root BEFORE yocto messes with cwd
             ROOTDIR=\$(pwd)
 
             source poky/oe-init-build-env build
