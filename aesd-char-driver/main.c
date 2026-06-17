@@ -50,16 +50,21 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
 {
     ssize_t retval = 0;
     PDEBUG("<aesd_read>read %zu bytes with offset %lld",count,*f_pos);
-    /**
-     * TODO: handle read
-     */
     struct aesd_dev *dev = filp->private_data;
+    /**
+     * handle read
+     */
+	mutex_lock(&dev->lock);
+
     if (!dev->buffer)
-        return 0;
+        goto END;
 
     /* EOF reached, nothing more to read */
     if (*f_pos >= dev->size)
-        return 0;
+    {
+		retval = 0;
+        goto END;
+	}
 
     /* Adjust count if too large */
     if (count > (dev->size - *f_pos))
@@ -67,10 +72,16 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_p
 
     /* Copy to user */
     if (copy_to_user(buf, dev->buffer + *f_pos, count))
-        return -EFAULT;
+    {
+		retval = -EFAULT;
+        goto END;
+	}
 
     *f_pos += count;
     retval = count;
+
+END:	
+	mutex_unlock(&dev->lock);
 
     return retval;
 }
