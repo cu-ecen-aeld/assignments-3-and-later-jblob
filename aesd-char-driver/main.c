@@ -46,14 +46,32 @@ int aesd_release(struct inode *inode, struct file *filp)
     return 0;
 }
 
-ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
-                loff_t *f_pos)
+ssize_t aesd_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
     ssize_t retval = 0;
     PDEBUG("<aesd_read>read %zu bytes with offset %lld",count,*f_pos);
     /**
      * TODO: handle read
      */
+    struct aesd_dev *dev = filp->private_data;
+    if (!dev->buffer)
+        return 0;
+
+    /* EOF reached, nothing more to read */
+    if (*f_pos >= dev->size)
+        return 0;
+
+    /* Adjust count if too large */
+    if (count > (dev->size - *f_pos))
+        count = dev->size - *f_pos;
+
+    /* Copy to user */
+    if (copy_to_user(buf, dev->buffer + *f_pos, count))
+        return -EFAULT;
+
+    *f_pos += count;
+    retval = count;
+
     return retval;
 }
 
