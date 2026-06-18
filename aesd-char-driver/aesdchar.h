@@ -32,6 +32,10 @@ struct aesd_dev
     char *buffer;       /* store data */
     size_t size;        /* current data length */
     struct mutex lock;  /* for later usage */
+    
+    // for partial writes without '\n'
+    char *buffer_partial;
+    size_t size_partial;
 };
 
 

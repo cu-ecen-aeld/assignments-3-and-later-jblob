@@ -86,54 +86,84 @@ END:
     return retval;
 }
 
-ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
-                loff_t *f_pos)
+ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
-    ssize_t retval = -ENOMEM; // count ?
-    PDEBUG("<aesd_write>write %zu bytes with offset %lld",count,*f_pos);
 
-    /**
-     * handle write
-     */
+    struct aesd_dev *dev = filp->private_data;
+    char *kbuf = NULL;
+    char *newbuf = NULL;
+    ssize_t retval = count;
+    bool found_newline = false;
+    size_t i;
 
-    /* Basic sanity check */
-    if (!buf || count == 0)
-        return 0;
-	 
-	char *kbuf = NULL;
-	struct aesd_dev *dev = filp->private_data;
+    mutex_lock(&dev->lock);
 
-    /* Allocate kernel buffer */
+    /* Allocate buffer for incoming data */
     kbuf = kmalloc(count, GFP_KERNEL);
-    if (!kbuf)
+    if (!kbuf) 
     {
-        printk(KERN_ERR "<aesdchar>kmalloc failed\n");
-        return -ENOMEM;
+        retval = -ENOMEM;
+        goto END;
     }
 
-    /* Copy from user space */
-    if (copy_from_user(kbuf, buf, count))
+    if (copy_from_user(kbuf, buf, count)) 
     {
-        printk(KERN_ERR "<aesdchar>copy_from_user failed\n");
         kfree(kbuf);
-        return -EFAULT;
+        retval = -EFAULT;
+        goto END;
     }
 
-    /*
-     * VERY SIMPLE BEHAVIOUR (for now):
-     * Just free old buffer and store new one
-     * -> prevents memory leaks
-     */
-    if (dev->buffer)
+    /* Check for newline */
+    for (i = 0; i < count; i++) 
     {
-        kfree(dev->buffer);
+        if (kbuf[i] == '\n') 
+        {
+            found_newline = true;
+            break;
+        }
     }
 
-    dev->buffer = kbuf;
-    dev->size = count;
-	
-	retval = count;
+    /* Append to partial buffer */
+    newbuf = kmalloc(dev->size_partial + count, GFP_KERNEL);
+    if (!newbuf) 
+    {
+        kfree(kbuf);
+        retval = -ENOMEM;
+        goto END;
+    }
 
+    /* Copy old partial */
+    if (dev->buffer_partial) 
+    {
+        memcpy(newbuf, dev->buffer_partial, dev->size_partial);
+        kfree(dev->buffer_partial);
+    }
+
+    /* Append new data */
+    memcpy(newbuf + dev->size_partial, kbuf, count);
+
+    dev->buffer_partial = newbuf;
+    dev->size_partial += count;
+
+    kfree(kbuf);
+
+    /* If newline found → finalize command */
+    if (found_newline) 
+    {
+        /* replace old buffer */
+        if (dev->buffer)
+            kfree(dev->buffer);
+
+        dev->buffer = dev->buffer_partial;
+        dev->size = dev->size_partial;
+
+        /* reset partial */
+        dev->buffer_partial = NULL;
+        dev->size_partial = 0;
+    }
+
+END:
+    mutex_unlock(&dev->lock);
     return retval;
 }
 
