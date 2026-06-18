@@ -22,6 +22,10 @@ else
 KERNELDIR ?= $(KERNEL_SRC)
 PWD := $(shell pwd)
 
+
+modules:
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+
 all:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
