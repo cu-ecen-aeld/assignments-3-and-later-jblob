@@ -6,7 +6,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 inherit module
 
 SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
-SRCREV = "0831d9b799174cc21c00393c1ec2d09f9d9c60fc"
+SRCREV = "83e6cdcdc2a85c0d5dfdc236962100132dd4520b"
 
 S = "${WORKDIR}/git/aesd-char-driver"
 

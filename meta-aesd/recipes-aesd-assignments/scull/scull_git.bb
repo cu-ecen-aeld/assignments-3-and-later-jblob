@@ -3,7 +3,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=8ed1a118f474eea5e159b560c339329b"
 
 # used github Repo
 SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
-SRCREV = "25f3c748bd0c5e16e96077f82513fe14d5eff80e"
+SRCREV = "83e6cdcdc2a85c0d5dfdc236962100132dd4520b"
 
 S = "${WORKDIR}/git"
 
