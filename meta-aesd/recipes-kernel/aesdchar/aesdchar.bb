@@ -20,5 +20,5 @@ do_install:append() {
 
 #  KEIN kernel-module Paket mehr verwenden!
 FILES:${PN} += "/lib/modules"
-RDEPENDS:${PN} -= "kernel-module-aesdchar"
+RDEPENDS:${PN} = ""
 RPROVIDES:${PN} += "kernel-module-aesdchar"
