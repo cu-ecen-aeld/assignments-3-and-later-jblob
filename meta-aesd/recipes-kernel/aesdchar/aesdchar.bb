@@ -5,6 +5,8 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 inherit module
 
+EXTRA_OEMAKE += "modules"
+
 SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
 SRCREV = "0ee067649a9670d1e8571ef96581307af99d0d6c"
 
