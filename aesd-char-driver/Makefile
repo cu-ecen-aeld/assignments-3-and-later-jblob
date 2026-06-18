@@ -4,9 +4,9 @@
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
-  DEBFLAGS = -O -g -DSCULL_DEBUG
+	DEBFLAGS = -O -g -DSCULL_DEBUG
 else
-  DEBFLAGS = -O2
+	DEBFLAGS = -O2
 endif
 
 EXTRA_CFLAGS += $(DEBFLAGS)
@@ -23,9 +23,9 @@ KERNELDIR ?= $(KERNEL_SRC)
 PWD := $(shell pwd)
 
 all:
-    $(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
 clean:
-    $(MAKE) -C $(KERNELDIR) M=$(PWD) clean
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) clean
 
 endif
