@@ -8,7 +8,7 @@ SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;proto
 
 PV = "1.0+git${SRCPV}"
 # TODO: set to reference a specific commit hash in your assignment repo
-SRCREV = "2484f14393fdc0c6ee6cd2acbc2eaf4543cc57d0"
+SRCREV = "e7ae56ba7b9ae005780abf79c1f90de0ad49c918"
 
 # This sets your staging directory based on WORKDIR, where WORKDIR is defined at 
 # https://docs.yoctoproject.org/ref-manual/variables.html?highlight=workdir#term-WORKDIR
