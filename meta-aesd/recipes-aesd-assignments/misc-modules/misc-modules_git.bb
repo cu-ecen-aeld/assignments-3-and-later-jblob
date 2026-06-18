@@ -5,7 +5,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=8ed1a118f474eea5e159b560c339329b"
 SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main \
            file://S98lddmodules"
 
-SRCREV = "83e6cdcdc2a85c0d5dfdc236962100132dd4520b"
+SRCREV = "0ee067649a9670d1e8571ef96581307af99d0d6c"
 S = "${WORKDIR}/git"
 
 inherit module update-rc.d
