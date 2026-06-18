@@ -4,7 +4,7 @@
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
-  DEBFLAGS = -O -g -DSCULL_DEBUG # "-O" is needed to expand inlines
+  DEBFLAGS = -O -g -DSCULL_DEBUG
 else
   DEBFLAGS = -O2
 endif
@@ -12,19 +12,20 @@ endif
 EXTRA_CFLAGS += $(DEBFLAGS)
 
 ifneq ($(KERNELRELEASE),)
-# call from kernel build system
-obj-m	:= aesdchar.o
+# Kernel build system part
+obj-m := aesdchar.o
 aesdchar-y := aesd-circular-buffer.o main.o
+
 else
+# External module build (Yocto)
 
-KERNELDIR ?= /lib/modules/$(KERNEL_SRC)
-PWD       := $(shell pwd)
+KERNELDIR ?= $(KERNEL_SRC)
+PWD := $(shell pwd)
 
-modules:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
-
-endif
+all:
+    $(MAKE) -C $(KERNELDIR) M=$(PWD) modules
 
 clean:
-	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions
+    $(MAKE) -C $(KERNELDIR) M=$(PWD) clean
 
+endif
