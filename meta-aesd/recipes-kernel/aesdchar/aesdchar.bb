@@ -11,14 +11,4 @@ SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;proto
 SRCREV = "62f60adc75361ea2cea7cae2bf89d4ecb85ad0a4"
 
 S = "${WORKDIR}/git/aesd-char-driver"
-
-#  MANUELL installieren (robust!)
-do_install:append() {
-    install -d ${D}/lib/modules/${KERNEL_VERSION}/extra
-    install -m 0644 ${B}/*.ko ${D}/lib/modules/${KERNEL_VERSION}/extra
-}
-
-#  KEIN kernel-module Paket mehr verwenden!
-FILES:${PN} += "/lib/modules"
-RDEPENDS:${PN} = ""
-RPROVIDES:${PN} += "kernel-module-aesdchar"
+KERNEL_MODULE_AUTOLOAD += "aesdchar"
