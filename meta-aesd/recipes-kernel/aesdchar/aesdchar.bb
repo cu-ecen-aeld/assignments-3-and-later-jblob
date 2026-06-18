@@ -10,9 +10,4 @@ SRCREV = "e7ae56ba7b9ae005780abf79c1f90de0ad49c918"
 
 S = "${WORKDIR}/git/aesd-char-driver"
 
-do_install:append() {
-    install -d ${D}/lib/modules/${KERNEL_VERSION}/extra
-    install -m 0644 ${B}/*.ko ${D}/lib/modules/${KERNEL_VERSION}/extra
-}
-
 FILES:${PN} += "/lib/modules/${KERNEL_VERSION}/extra/aesdchar.ko"
