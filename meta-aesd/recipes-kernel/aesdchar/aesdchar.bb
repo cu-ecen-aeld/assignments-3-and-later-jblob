@@ -6,6 +6,6 @@ inherit module
 
 SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
 
-SRCREV = "7e35e7a8aff17e20aeaa8212ff3d57e67ba5d794"
+SRCREV = "2484f14393fdc0c6ee6cd2acbc2eaf4543cc57d0"
 
 S = "${WORKDIR}/git/aesd-char-driver"
