@@ -19,4 +19,5 @@ do_install:append() {
 }
 
 #  KEIN kernel-module Paket mehr verwenden!
-FILES:${PN} += "/lib/modules/${KERNEL_VERSION}/extra/aesdchar.ko"
+FILES:${PN} += "/lib/modules"
+RDEPENDS:${PN} = ""
