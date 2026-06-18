@@ -17,7 +17,7 @@ obj-m	:= aesdchar.o
 aesdchar-y := aesd-circular-buffer.o main.o
 else
 
-KERNELDIR ?= /lib/modules/$(KERNEL_SRC)/build
+KERNELDIR ?= /lib/modules/$(KERNEL_SRC)
 PWD       := $(shell pwd)
 
 modules:
