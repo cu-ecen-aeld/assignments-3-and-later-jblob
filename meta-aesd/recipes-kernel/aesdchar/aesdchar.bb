@@ -24,10 +24,10 @@ do_install:append() {
     install -m 0755 ${S}/aesdchar_unload ${D}${bindir}/aesdchar_unload
     
     # Unser neues Init-Skript kopieren
-    install -m 0755 ${S}/aesdchar-init ${D}${sysconfdir}/init.d/aesdchar_init
+    install -m 0755 ${S}/aesdchar_init ${D}${sysconfdir}/init.d/aesdchar_init
 }
 
 FILES:${PN} += " \
-    ${sysconfdir}/init.d/aesdchar-init \
+    ${sysconfdir}/init.d/aesdchar_init \
     ${bindir}/aesdchar_load \
     ${bindir}/aesdchar_unload \
