@@ -7,7 +7,7 @@ inherit module update-rc.d
 EXTRA_OEMAKE += "modules"
 
 SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
-SRCREV = "6fd3449aec9ada76f104ed7d6e01ff93a3b59aed"
+SRCREV = "56197121dc10391c4a295b1f5b620210f217d4e8"
 
 S = "${WORKDIR}/git/aesd-char-driver"
 
