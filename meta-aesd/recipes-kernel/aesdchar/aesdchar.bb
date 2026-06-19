@@ -11,7 +11,7 @@ SRCREV = "6fd3449aec9ada76f104ed7d6e01ff93a3b59aed"
 
 S = "${WORKDIR}/git/aesd-char-driver"
 
-INITSCRIPT_NAME = "aesdchar-init"
+INITSCRIPT_NAME = "aesdchar_init"
 INITSCRIPT_PARAMS = "defaults 90 10"
 
 do_install:append() {
