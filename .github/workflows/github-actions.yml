@@ -20,6 +20,13 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
 
+
+      - name: Disable SSL verification
+        run: |
+          git config --global http.sslVerify false
+
+
+
       - name: Install dependencies + locale + socat
         run: |
           apt-get update
