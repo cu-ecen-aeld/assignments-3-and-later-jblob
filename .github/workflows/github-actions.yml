@@ -13,19 +13,19 @@ jobs:
       image: cuaesd/aesd-autotest:24-assignment7-buildroot
       options: -v /home/jblob/yocto-cache:/yocto-cache -v /home/jblob/yocto-build:/build
 
+    env:
+      GIT_SSL_NO_VERIFY: "true"
+
     steps:
+      - name: Disable SSL verification
+        run: |
+          git config --global http.sslVerify false
+
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Checkout submodules
         run: git submodule update --init --recursive
-
-
-      - name: Disable SSL verification
-        run: |
-          git config --global http.sslVerify false
-
-
 
       - name: Install dependencies + locale + socat
         run: |
