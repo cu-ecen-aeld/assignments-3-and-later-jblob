@@ -271,6 +271,8 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
     loff_t newpos;
     size_t total_size = 0;
     int i;
+    
+    mutex_lock(&dev->lock);
 
     // calculate total size
     for (i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++) 
@@ -306,6 +308,9 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
         newpos = total_size;
 
     filp->f_pos = newpos;
+    
+    mutex_unlock(&dev->lock);
+    
     return newpos;
 }
 
