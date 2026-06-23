@@ -19,6 +19,8 @@
 #define BACKLOG 20
 #define PORT "9000"
 
+#define IOCTL_PREFIX "AESDCHAR_IOCSEEKTO:"
+
 #define DEBUG_OUT
 #define USE_AESD_CHAR_DEVICE 1
 #if USE_AESD_CHAR_DEVICE
@@ -47,78 +49,114 @@ static void signal_handler(int signal_number)
 	}
 }
 
-void *threadfunc(void *arg) 
+void *threadfunc(void *arg)
 {
-	struct thread_data *th_arg = (struct thread_data *)arg;
+    struct thread_data *th_arg = (struct thread_data *)arg;
 
-	// send/recv
-	// 6. Get the printable IP address
-	void *addr;
-	char s[INET6_ADDRSTRLEN];
+    void *addr;
+    char s[INET6_ADDRSTRLEN];
 
-	if (th_arg->their_addr.ss_family == AF_INET) // IPv4
-	{
-		struct sockaddr_in *ipv4 = (struct sockaddr_in *)&th_arg->their_addr;
-		addr = &(ipv4->sin_addr);
-	} 
-	else // IPv6
-	{
-		struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&th_arg->their_addr;
-		addr = &(ipv6->sin6_addr);
-	}
-
-	inet_ntop(th_arg->their_addr.ss_family, addr, s, sizeof s);
-
-	syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
-		
-	// --- START KRITISCHER ABSCHNITT ---
-	pthread_mutex_lock(&file_mutex);
-	int fd = open(FOUT, O_WRONLY);
-    if (fd >= 0)
+    if (th_arg->their_addr.ss_family == AF_INET) 
     {
-        char buf[1024];
-        ssize_t bytes_received;
-        while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
-        {
-			ssize_t total_written = 0;
-			while (total_written < bytes_received)
-			{
-				ssize_t written = write(fd, buf + total_written, bytes_received - total_written);
-				if (written < 0)
-					break;
-				total_written += written;
-			}            
-            if (memchr(buf, '\n', bytes_received) != NULL) 
-				break;
-        }
-        close(fd);
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *)&th_arg->their_addr;
+        addr = &(ipv4->sin_addr);
+    } 
+    else 
+    {
+        struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&th_arg->their_addr;
+        addr = &(ipv6->sin6_addr);
     }
 
-    fd = open(FOUT, O_RDONLY);
-    if (fd >= 0)
+    inet_ntop(th_arg->their_addr.ss_family, addr, s, sizeof s);
+    syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
+
+    pthread_mutex_lock(&file_mutex);
+
+    int fd = open(FOUT, O_RDWR);
+    if (fd < 0) 
     {
-        char send_buf[1024];
-        ssize_t bytes_read;
-        while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0)
-        {
-            ssize_t total_sent = 0;
-			while (total_sent < bytes_read)
-			{
-				ssize_t sent = send(th_arg->new_fd,	send_buf + total_sent, bytes_read - total_sent, 0);
-				if (sent < 0)
-					break;
-				total_sent += sent;
-			}
-        }
-        close(fd);
+        pthread_mutex_unlock(&file_mutex);
+        close(th_arg->new_fd);
+        return NULL;
     }
+
+    /* -------- RECEIVE COMPLETE MESSAGE -------- */
+    char buf[1024];
+    char full_buf[2048] = {0};
+    size_t total_len = 0;
+    ssize_t bytes_received;
+
+    while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
+    {
+
+        if (total_len + bytes_received < sizeof(full_buf)) 
+        {
+            memcpy(full_buf + total_len, buf, bytes_received);
+            total_len += bytes_received;
+        }
+
+        if (memchr(buf, '\n', bytes_received) != NULL)
+            break;
+    }
+
+    /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
+    if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
+    {
+        uint32_t cmd_idx, cmd_offset;
+
+        if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
+        {
+            struct aesd_seekto seekto;
+            seekto.write_cmd = cmd_idx;
+            seekto.write_cmd_offset = cmd_offset;
+
+            if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
+            {
+                syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
+            }
+        }
+    } 
+    else 
+    {
+        /* -------- NORMAL WRITE (robust) -------- */
+        size_t written_total = 0;
+
+        while (written_total < total_len) 
+        {
+            ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
+            if (written < 0) break;
+            written_total += written;
+        }
+
+        /* nach write -> zum Anfang springen */
+        lseek(fd, 0, SEEK_SET);
+    }
+
+    /* -------- READ BACK AND SEND -------- */
+    char send_buf[1024];
+    ssize_t bytes_read;
+
+    while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
+    {
+        size_t sent_total = 0;
+
+        while (sent_total < bytes_read) 
+        {
+            ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
+            if (sent < 0) break;
+            sent_total += sent;
+        }
+    }
+
+    close(fd);
     pthread_mutex_unlock(&file_mutex);
 
-    // 2. CLEAN UP
+    /* -------- CLEANUP -------- */
     close(th_arg->new_fd);
-	pthread_mutex_lock(&file_mutex);
-    th_arg->bThreadCompleted = true; 
-    pthread_mutex_unlock(&file_mutex);    
+
+    pthread_mutex_lock(&file_mutex);
+    th_arg->bThreadCompleted = true;
+    pthread_mutex_unlock(&file_mutex);
 
     return NULL;
 }
