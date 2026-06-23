@@ -188,6 +188,7 @@ struct file_operations aesd_fops = {
     .write =    aesd_write,
     .open =     aesd_open,
     .release =  aesd_release,
+    .llseek  =  aesd_llseek,
 };
 
 static int aesd_setup_cdev(struct aesd_dev *dev)
@@ -262,6 +263,50 @@ void aesd_cleanup_module(void)
     unregister_chrdev_region(devno, 1);
 }
 
+
+loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
+{
+    struct aesd_dev *dev = filp->private_data;
+    loff_t newpos;
+    size_t total_size = 0;
+    int i;
+
+    // calculate total size
+    for (i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++) 
+    {
+        if (dev->buffer.entry[i].buffptr != NULL) 
+        {
+            total_size += dev->buffer.entry[i].size; // use buffer_entries, not f_pos !!!
+        }
+    }
+
+    switch (whence) 
+    {
+        case SEEK_SET:
+            newpos = offset;
+            break;
+
+        case SEEK_CUR:
+            newpos = filp->f_pos + offset;
+            break;
+
+        case SEEK_END:
+            newpos = total_size + offset;
+            break;
+
+        default:
+            return -EINVAL;
+    }
+
+    if (newpos < 0)
+        return -EINVAL;
+
+    if (newpos > total_size)
+        newpos = total_size;
+
+    filp->f_pos = newpos;
+    return newpos;
+}
 
 
 module_init(aesd_init_module);
