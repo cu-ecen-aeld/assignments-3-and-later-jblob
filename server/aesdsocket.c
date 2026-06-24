@@ -127,10 +127,9 @@ void *threadfunc(void *arg)
             if (written < 0) break;
             written_total += written;
         }
-
-        /* nach write -> zum Anfang springen */
-        lseek(fd, 0, SEEK_SET);
     }
+	/* nach write -> zum Anfang springen */
+	lseek(fd, 0, SEEK_SET);
 
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
@@ -143,7 +142,8 @@ void *threadfunc(void *arg)
         while (sent_total < bytes_read) 
         {
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
-            if (sent < 0) break;
+            if (sent < 0) 
+				break;
             sent_total += sent;
         }
     }
