@@ -99,6 +99,12 @@ void *threadfunc(void *arg)
             break;
     }
 
+	/* Ensure newline termination */
+	if (total_len > 0 && full_buf[total_len - 1] != '\n') 
+	{
+		full_buf[total_len++] = '\n';
+	}
+
     /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
@@ -128,6 +134,10 @@ void *threadfunc(void *arg)
             written_total += written;
         }
     }
+    
+    
+	fsync(fd);
+
 	/* nach write -> zum Anfang springen */
 	lseek(fd, 0, SEEK_SET);
 
