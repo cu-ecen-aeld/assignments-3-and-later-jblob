@@ -298,11 +298,15 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
             break;
 
         default:
+			mutex_unlock(&dev->lock);
             return -EINVAL;
     }
 
     if (newpos < 0)
+    {
+		mutex_unlock(&dev->lock);
         return -EINVAL;
+	}
 
     if (newpos > total_size)
         newpos = total_size;
