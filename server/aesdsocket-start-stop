@@ -1,6 +1,6 @@
 #!/bin/sh
 
-Start/stop the aesdsocket daemon.
+# Start/stop the aesdsocket daemon.
 
 DAEMON=/usr/bin/aesdsocket
 DAEMON_NAME=aesdsocket
