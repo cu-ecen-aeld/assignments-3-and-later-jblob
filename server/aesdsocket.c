@@ -52,7 +52,6 @@ static void signal_handler(int signal_number)
 void *threadfunc(void *arg)
 {
     struct thread_data *th_arg = (struct thread_data *)arg;
-
     void *addr;
     char s[INET6_ADDRSTRLEN];
 
@@ -70,16 +69,6 @@ void *threadfunc(void *arg)
     inet_ntop(th_arg->their_addr.ss_family, addr, s, sizeof s);
     syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
 
-    pthread_mutex_lock(&file_mutex);
-
-    int fd = open(FOUT, O_RDWR);
-    if (fd < 0) 
-    {
-        pthread_mutex_unlock(&file_mutex);
-        close(th_arg->new_fd);
-        return NULL;
-    }
-
     /* -------- RECEIVE COMPLETE MESSAGE -------- */
     char buf[1024];
     char full_buf[2048] = {0};
@@ -88,7 +77,6 @@ void *threadfunc(void *arg)
 
     while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
     {
-
         if (total_len + bytes_received < sizeof(full_buf)) 
         {
             memcpy(full_buf + total_len, buf, bytes_received);
@@ -99,14 +87,24 @@ void *threadfunc(void *arg)
             break;
     }
 
-	/* Ensure newline termination */
-	if (total_len > 0 && full_buf[total_len - 1] != '\n') 
-	{
-		full_buf[total_len++] = '\n';
-	}
+    /* Ensure newline termination */
+    if (total_len > 0 && full_buf[total_len - 1] != '\n') 
+    {
+        full_buf[total_len++] = '\n';
+    }
 
+    // JETZT ERST DIE DATEI ÖFFNEN (Unter Mutex-Schutz)
+    pthread_mutex_lock(&file_mutex);
 
-/* -------- PARSE IOCTL OR NORMAL WRITE -------- */
+    int fd = open(FOUT, O_RDWR);
+    if (fd < 0) 
+    {
+        pthread_mutex_unlock(&file_mutex);
+        close(th_arg->new_fd);
+        return NULL;
+    }
+
+    /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
         uint32_t cmd_idx, cmd_offset;
@@ -122,13 +120,11 @@ void *threadfunc(void *arg)
                 syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
             }
         }
-        /* HIER KEIN lseek! Wir wollen genau ab der ioctl-Position lesen. */
     } 
     else 
     {
-        /* -------- NORMAL WRITE (robust) -------- */
+        /* -------- NORMAL WRITE -------- */
         size_t written_total = 0;
-
         while (written_total < total_len) 
         {
             ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
@@ -138,30 +134,27 @@ void *threadfunc(void *arg)
         
         fsync(fd);
 
-        /* Das funktioniert für BEIDE Varianten (Device und Datei) */
-        /* da dein Treiber llseek implementiert hat! */
+        // Nach dem Schreiben setzen wir den Zeiger zurück auf den Anfang zum Lesen!
         lseek(fd, 0, SEEK_SET);
     }
-
-    /* Das globale lseek(fd, 0, SEEK_SET); an dieser Stelle UNBEDINGT ENTFERNEN! */
-
+    
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
-	ssize_t bytes_read;
+    ssize_t bytes_read;
 
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
         size_t sent_total = 0;
-
         while (sent_total < bytes_read) 
         {
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
             if (sent < 0) 
-				break;
+                break;
             sent_total += sent;
         }
     }
 
+    // DATEI SCHLIESSEN UND MUTEX UNLOCK
     close(fd);
     pthread_mutex_unlock(&file_mutex);
 
