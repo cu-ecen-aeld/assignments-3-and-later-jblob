@@ -176,6 +176,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count, loff
 		dev->buffer_partial = NULL;
 		dev->size_partial = 0;
     }
+    *f_pos += count;
 
 END:
     mutex_unlock(&dev->lock);
@@ -270,16 +271,17 @@ loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
     struct aesd_dev *dev = filp->private_data;
     loff_t newpos;
     size_t total_size = 0;
-    int i;
+    struct aesd_buffer_entry *entry;
+    int index;
     
     mutex_lock(&dev->lock);
 
     // calculate total size
-    for (i = 0; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; i++) 
+    AESD_CIRCULAR_BUFFER_FOREACH(entry, &dev->buffer, index) 
     {
-        if (dev->buffer.entry[i].buffptr != NULL) 
+        if (entry->buffptr != NULL) 
         {
-            total_size += dev->buffer.entry[i].size; // use buffer_entries, not f_pos !!!
+            total_size += entry->size;
         }
     }
 
