@@ -128,10 +128,8 @@ void *threadfunc(void *arg)
             written_total += written;
         }
 
-#if !USE_AESD_CHAR_DEVICE
         /* nach write -> zum Anfang springen */
         lseek(fd, 0, SEEK_SET);
-#endif
     }
 
     /* -------- READ BACK AND SEND -------- */
