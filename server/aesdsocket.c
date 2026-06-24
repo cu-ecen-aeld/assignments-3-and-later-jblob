@@ -138,17 +138,11 @@ void *threadfunc(void *arg)
         
         fsync(fd);
 
-        /* Position für das anschließende Auslesen zurücksetzen */
-#if USE_AESD_CHAR_DEVICE
-        // Für das echte Device ist ein Reopen der sicherste Weg, f_pos auf 0 zu bringen
-        close(fd);
-        fd = open(FOUT, O_RDWR);
-#else
-        // Für die normale Datei im Host-Modus reicht lseek
+        /* Das funktioniert für BEIDE Varianten (Device und Datei) */
+        /* da dein Treiber llseek implementiert hat! */
         lseek(fd, 0, SEEK_SET);
-#endif
     }
-    
+
     /* Das globale lseek(fd, 0, SEEK_SET); an dieser Stelle UNBEDINGT ENTFERNEN! */
 
     /* -------- READ BACK AND SEND -------- */
