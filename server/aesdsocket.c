@@ -105,7 +105,8 @@ void *threadfunc(void *arg)
 		full_buf[total_len++] = '\n';
 	}
 
-    /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
+
+/* -------- PARSE IOCTL OR NORMAL WRITE -------- */
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
         uint32_t cmd_idx, cmd_offset;
@@ -121,6 +122,7 @@ void *threadfunc(void *arg)
                 syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
             }
         }
+        /* HIER KEIN lseek! Wir wollen genau ab der ioctl-Position lesen. */
     } 
     else 
     {
@@ -133,17 +135,25 @@ void *threadfunc(void *arg)
             if (written < 0) break;
             written_total += written;
         }
+        
+        fsync(fd);
+
+        /* Position für das anschließende Auslesen zurücksetzen */
+#if USE_AESD_CHAR_DEVICE
+        // Für das echte Device ist ein Reopen der sicherste Weg, f_pos auf 0 zu bringen
+        close(fd);
+        fd = open(FOUT, O_RDWR);
+#else
+        // Für die normale Datei im Host-Modus reicht lseek
+        lseek(fd, 0, SEEK_SET);
+#endif
     }
     
-    
-	fsync(fd);
-
-	/* nach write -> zum Anfang springen */
-	lseek(fd, 0, SEEK_SET);
+    /* Das globale lseek(fd, 0, SEEK_SET); an dieser Stelle UNBEDINGT ENTFERNEN! */
 
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
-    ssize_t bytes_read;
+	ssize_t bytes_read;
 
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
