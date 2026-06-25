@@ -16,6 +16,9 @@
 
 #include <syslog.h>
 
+#include <sys/ioctl.h>
+#include "../aesd-char-driver/aesd_ioctl.h"
+
 #define BACKLOG 20
 #define PORT "9000"
 
