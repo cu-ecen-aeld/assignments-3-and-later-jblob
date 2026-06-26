@@ -14,7 +14,8 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 #SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;branch=main;protocol=https"
 #SRC_URI = "file://${FILE_DIRNAME}/../../../../"
 #SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
-SRC_URI = "git://${FILE_DIRNAME}/../../../../;protocol=file;branch=main"
+#SRC_URI = "git://${FILE_DIRNAME}/../../../../;protocol=file;branch=main"
+SRC_URI = "file://${FILE_DIRNAME}/../../../../"
 
 PV = "1.0+git${SRCPV}"
 # TODO: set to reference a specific commit hash in your assignment repo
@@ -28,7 +29,12 @@ SRCREV = "358fbc17f0032de01b63f71799d58d7f655461c1"
 # https://docs.yoctoproject.org/ref-manual/variables.html?highlight=workdir#term-WORKDIR
 # We reference the "server" directory here to build from the "server" directory
 # in your assignments repo
-S = "${WORKDIR}/git/server"
+#S = "${WORKDIR}/git/server"
+S = "${WORKDIR}/server"
+
+# Verhindert, dass Yocto nach Git-Metadaten sucht, die bei file:// nicht existieren:
+BB_STRICT_CHECKSUM = "0"
+do_deploy_source_date_epoch[noexec] = "1"
 
 # TODO: Add the aesdsocket application and any other files you need to install
 # See https://git.yoctoproject.org/poky/plain/meta/conf/bitbake.conf?h=kirkstone
