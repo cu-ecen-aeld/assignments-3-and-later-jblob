@@ -6,8 +6,8 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 # about how to setup ssh-agent for passwordless access
 ####SRC_URI = "git://git@github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
 ####SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
-SRC_URI = "ssh://git@github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
-
+####SRC_URI = "ssh://git@github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
+SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
 PV = "1.0+git${SRCPV}"
 # TODO: set to reference a specific commit hash in your assignment repo
 SRCREV = "358fbc17f0032de01b63f71799d58d7f655461c1"
