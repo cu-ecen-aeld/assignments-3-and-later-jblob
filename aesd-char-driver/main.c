@@ -183,89 +183,6 @@ END:
     return retval;
 }
 
-struct file_operations aesd_fops = {
-    .owner =    THIS_MODULE,
-    .read =     aesd_read,
-    .write =    aesd_write,
-    .open =     aesd_open,
-    .release =  aesd_release,
-    .llseek  =  aesd_llseek,
-    .unlocked_ioctl = aesd_unlocked_ioctl,
-};
-
-static int aesd_setup_cdev(struct aesd_dev *dev)
-{
-    int err, devno = MKDEV(aesd_major, aesd_minor);
-
-    cdev_init(&dev->cdev, &aesd_fops);
-    dev->cdev.owner = THIS_MODULE;
-    dev->cdev.ops = &aesd_fops;
-    err = cdev_add (&dev->cdev, devno, 1);
-    if (err) {
-        printk(KERN_ERR "Error %d adding aesd cdev", err);
-    }
-    return err;
-}
-
-
-
-int aesd_init_module(void)
-{
-    dev_t dev = 0;
-    int result;
-    result = alloc_chrdev_region(&dev, aesd_minor, 1, "aesdchar");
-    aesd_major = MAJOR(dev);
-    if (result < 0) 
-	{
-        printk(KERN_WARNING "Can't get major %d\n", aesd_major);
-        return result;
-    }
-    memset(&aesd_device,0,sizeof(struct aesd_dev));
-
-    /**
-     * initialize the AESD specific portion of the device
-     */
-
-    result = aesd_setup_cdev(&aesd_device);
-
-    if( result ) 
-	{
-        unregister_chrdev_region(dev, 1);
-    }
-	
-	mutex_init(&aesd_device.lock);
-	
-	aesd_circular_buffer_init(&aesd_device.buffer);
-	
-    return result;
-
-}
-
-
-void aesd_cleanup_module(void)
-{
-    dev_t devno = MKDEV(aesd_major, aesd_minor);
-
-    /**
-     * cleanup AESD specific poritions here as necessary
-     */
-	if (aesd_device.buffer_partial)
-		kfree(aesd_device.buffer_partial);
-
-	struct aesd_buffer_entry *entry;
-	uint8_t index;
-
-	AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.buffer, index) 
-	{
-		if (entry->buffptr)
-			kfree(entry->buffptr);
-	}
-
-    cdev_del(&aesd_device.cdev);
-    unregister_chrdev_region(devno, 1);
-}
-
-
 loff_t aesd_llseek(struct file *filp, loff_t offset, int whence)
 {
     struct aesd_dev *dev = filp->private_data;
@@ -379,6 +296,88 @@ long aesd_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         default:
             return -ENOTTY;
     }
+}
+
+struct file_operations aesd_fops = {
+    .owner =    THIS_MODULE,
+    .read =     aesd_read,
+    .write =    aesd_write,
+    .open =     aesd_open,
+    .release =  aesd_release,
+    .llseek  =  aesd_llseek,
+    .unlocked_ioctl = aesd_unlocked_ioctl,
+};
+
+static int aesd_setup_cdev(struct aesd_dev *dev)
+{
+    int err, devno = MKDEV(aesd_major, aesd_minor);
+
+    cdev_init(&dev->cdev, &aesd_fops);
+    dev->cdev.owner = THIS_MODULE;
+    dev->cdev.ops = &aesd_fops;
+    err = cdev_add (&dev->cdev, devno, 1);
+    if (err) {
+        printk(KERN_ERR "Error %d adding aesd cdev", err);
+    }
+    return err;
+}
+
+
+
+int aesd_init_module(void)
+{
+    dev_t dev = 0;
+    int result;
+    result = alloc_chrdev_region(&dev, aesd_minor, 1, "aesdchar");
+    aesd_major = MAJOR(dev);
+    if (result < 0) 
+	{
+        printk(KERN_WARNING "Can't get major %d\n", aesd_major);
+        return result;
+    }
+    memset(&aesd_device,0,sizeof(struct aesd_dev));
+
+    /**
+     * initialize the AESD specific portion of the device
+     */
+
+    result = aesd_setup_cdev(&aesd_device);
+
+    if( result ) 
+	{
+        unregister_chrdev_region(dev, 1);
+    }
+	
+	mutex_init(&aesd_device.lock);
+	
+	aesd_circular_buffer_init(&aesd_device.buffer);
+	
+    return result;
+
+}
+
+
+void aesd_cleanup_module(void)
+{
+    dev_t devno = MKDEV(aesd_major, aesd_minor);
+
+    /**
+     * cleanup AESD specific poritions here as necessary
+     */
+	if (aesd_device.buffer_partial)
+		kfree(aesd_device.buffer_partial);
+
+	struct aesd_buffer_entry *entry;
+	uint8_t index;
+
+	AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.buffer, index) 
+	{
+		if (entry->buffptr)
+			kfree(entry->buffptr);
+	}
+
+    cdev_del(&aesd_device.cdev);
+    unregister_chrdev_region(devno, 1);
 }
 
 module_init(aesd_init_module);
