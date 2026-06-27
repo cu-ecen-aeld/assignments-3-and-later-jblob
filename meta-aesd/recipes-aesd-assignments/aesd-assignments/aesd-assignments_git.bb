@@ -31,8 +31,14 @@ SRCREV = "358fbc17f0032de01b63f71799d58d7f655461c1"
 # in your assignments repo
 #S = "${WORKDIR}/git/server"
 #S = "${WORKDIR}/server"
+#S = "${WORKDIR}"
+# Da Bitbake den Inhalt flach in WORKDIR entpackt,
+# setzen wir S direkt auf WORKDIR:
 S = "${WORKDIR}"
-B = "${S}/server"
+#B = "${S}/server"
+# Verhindert, dass Yocto nach Git-Metadaten sucht, die bei file:// nicht existieren:
+BB_STRICT_CHECKSUM = "0"
+do_deploy_source_date_epoch[noexec] = "1"
 
 # Verhindert, dass Yocto nach Git-Metadaten sucht, die bei file:// nicht existieren:
 BB_STRICT_CHECKSUM = "0"
