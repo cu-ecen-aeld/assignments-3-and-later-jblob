@@ -2,19 +2,19 @@
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-# Wir nutzen den exakten, absoluten Pfad des Layers als Basis!
-# '${LAYERDIR_meta-aesd}' zeigt direkt auf deinen meta-aesd Ordner.
-# Von dort gehen wir ins Root-Verzeichnis und holen den server-Ordner.
-SRC_URI = "file://${LAYERDIR_meta-aesd}/../server"
+# Wir umgehen den Fetcher komplett und nutzen externalsrc
+inherit externalsrc
 
-# Da Bitbake den Inhalt des server-Ordners flach in WORKDIR entpackt:
-S = "${WORKDIR}"
+# EXTERNALSRC muss auf den absoluten Pfad des server-Verzeichnisses zeigen.
+# '${THISDIR}' ist hierbei absolut sicher, da es immer auf den Ordner zeigt,
+# in dem genau diese Rezeptdatei liegt.
+EXTERNALSRC = "${THISDIR}/../../../../server"
+
+# Da bei externalsrc das Kompilieren standardmäßig direkt im Quellordner
+# stattfindet, setzen wir das Build-Verzeichnis ebenfalls dorthin:
+EXTERNALSRC_BUILD = "${THISDIR}/../../../../server"
 
 # Verhindert, dass Yocto nach Git-Metadaten sucht
-BB_STRICT_CHECKSUM = "0"
-do_deploy_source_date_epoch[noexec] = "1"
-
-# Verhindert, dass Yocto nach Git-Metadaten sucht, die bei file:// nicht existieren:
 BB_STRICT_CHECKSUM = "0"
 do_deploy_source_date_epoch[noexec] = "1"
 
