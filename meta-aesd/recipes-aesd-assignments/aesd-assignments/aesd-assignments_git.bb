@@ -2,46 +2,15 @@
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-# TODO: Set this  with the path to your assignments rep.  Use ssh protocol and see lecture notes
-# about how to setup ssh-agent for passwordless access
-####SRC_URI = "git://git@github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
-####SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
-####SRC_URI = "ssh://git@github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=ssh;branch=main"
-## ## ### SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
-## ## ###SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;branch=main;protocol=https"
-#SRC_URI = "https://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;branch=main"
+# Wir nutzen den exakten, absoluten Pfad des Layers als Basis!
+# '${LAYERDIR_meta-aesd}' zeigt direkt auf deinen meta-aesd Ordner.
+# Von dort gehen wir ins Root-Verzeichnis und holen den server-Ordner.
+SRC_URI = "file://${LAYERDIR_meta-aesd}/../server"
 
-#SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;branch=main;protocol=https"
-#SRC_URI = "file://${FILE_DIRNAME}/../../../../"
-#SRC_URI = "git://github.com/cu-ecen-aeld/assignments-3-and-later-jblob.git;protocol=https;branch=main"
-#SRC_URI = "git://${FILE_DIRNAME}/../../../../;protocol=file;branch=main"
-#SRC_URI = "file://${FILE_DIRNAME}/../../../../"
-#SRC_URI = "file://${TOPDIR}/../assignments-3-and-later-jblob"
-SRC_URI = "file://server"
-# Wir erweitern den Suchpfad für Bitbake, damit es den Ordner findet
-FILESEXTRAPATHS:prepend := "${THISDIR}/../../../../:"
-PV = "1.0+git${SRCPV}"
-# TODO: set to reference a specific commit hash in your assignment repo
-SRCREV = "358fbc17f0032de01b63f71799d58d7f655461c1"
-
-#####SRCREV = "${AUTOREV}"
-
-
-
-# This sets your staging directory based on WORKDIR, where WORKDIR is defined at 
-# https://docs.yoctoproject.org/ref-manual/variables.html?highlight=workdir#term-WORKDIR
-# We reference the "server" directory here to build from the "server" directory
-# in your assignments repo
-#S = "${WORKDIR}/git/server"
-#S = "${WORKDIR}/server"
-#S = "${WORKDIR}"
-# Da Bitbake den Inhalt flach in WORKDIR entpackt,
-# setzen wir S direkt auf WORKDIR:
+# Da Bitbake den Inhalt des server-Ordners flach in WORKDIR entpackt:
 S = "${WORKDIR}"
-#B = "${S}/server"
-#S = "${WORKDIR}/assignments-3-and-later-jblob/server"
 
-# Verhindert, dass Yocto nach Git-Metadaten sucht, die bei file:// nicht existieren:
+# Verhindert, dass Yocto nach Git-Metadaten sucht
 BB_STRICT_CHECKSUM = "0"
 do_deploy_source_date_epoch[noexec] = "1"
 
