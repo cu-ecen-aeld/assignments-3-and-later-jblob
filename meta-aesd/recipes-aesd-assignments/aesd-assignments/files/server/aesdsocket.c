@@ -106,6 +106,7 @@ void *threadfunc(void *arg)
         close(th_arg->new_fd);
         return NULL;
     }
+    lseek(fd, 0, SEEK_SET);
 
     /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
