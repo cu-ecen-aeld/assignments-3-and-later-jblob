@@ -146,7 +146,7 @@ void *threadfunc(void *arg)
         //fd = open(FOUT, O_RDONLY);
 #endif
     }
-        
+
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
     ssize_t bytes_read;
