@@ -137,7 +137,7 @@ void *threadfunc(void *arg)
         
         fsync(fd);
 
-        // lseek NUR bei regulären Dateien ausführen!
+        // exec lseek ONLY when working with regular files
 #if !USE_AESD_CHAR_DEVICE
         lseek(fd, 0, SEEK_SET);
 #else
