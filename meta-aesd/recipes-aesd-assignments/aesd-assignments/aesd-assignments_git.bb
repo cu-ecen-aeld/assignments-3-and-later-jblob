@@ -11,11 +11,9 @@ PV = "1.0"
 
 inherit update-rc.d
 
-INIT_SCRIPT_PACKAGES = "${PN}"
-INITSCRIPT_NAME:${PN} = "S99aesdsocket"
-
-#FILES:${PN} += "${bindir}/aesdsocket"
-#FILES:${PN} += "${sysconfdir}/init.d/S99aesdsocket"
+INITSCRIPT_PACKAGES = "${PN}"
+INITSCRIPT_NAME:${PN} = "aesdsocket-start-stop"
+INITSCRIPT_PARAMS:${PN} = "defaults"
 
 FILES:${PN} += "${sbindir}/aesdsocket"
 FILES:${PN} += "${sysconfdir}/init.d/aesdsocket-start-stop"
