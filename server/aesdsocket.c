@@ -137,10 +137,16 @@ void *threadfunc(void *arg)
         
         fsync(fd);
 
-        // Nach dem Schreiben setzen wir den Zeiger zurück auf den Anfang zum Lesen!
+        // lseek NUR bei regulären Dateien ausführen!
+#if !USE_AESD_CHAR_DEVICE
         lseek(fd, 0, SEEK_SET);
+#else
+        // Für das Device: Schließen und neu öffnen, damit f_pos wieder bei 0 startet
+        close(fd);
+        fd = open(FOUT, O_RDONLY);
+#endif
     }
-    
+        
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
     ssize_t bytes_read;
