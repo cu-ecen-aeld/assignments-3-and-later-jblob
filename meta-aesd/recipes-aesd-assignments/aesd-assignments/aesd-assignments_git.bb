@@ -2,23 +2,22 @@
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-# Wir umgehen den Fetcher komplett und nutzen externalsrc
-inherit externalsrc
+# Wir nutzen das lokale git-Protokoll relativ zum Rezeptordner.
+# Das zieht das gesamte Repo sauber über den Git-Fetcher.
+SRC_URI = "git://${THISDIR}/../../../;protocol=file;branch=main"
 
-# EXTERNALSRC muss auf den absoluten Pfad des server-Verzeichnisses zeigen.
-# '${THISDIR}' ist hierbei absolut sicher, da es immer auf den Ordner zeigt,
-# in dem genau diese Rezeptdatei liegt.
-EXTERNALSRC = "${THISDIR}/../../../../server"
+# Der offizielle Commit-Hash deines Repos (wird von der CI/Autotester überschrieben, 
+# muss aber für den lokalen Test initial auf einen validen Stand zeigen)
+SRCREV = "${AUTOREV}"
 
-# Da bei externalsrc das Kompilieren standardmäßig direkt im Quellordner
-# stattfindet, setzen wir das Build-Verzeichnis ebenfalls dorthin:
-EXTERNALSRC_BUILD = "${THISDIR}/../../../../server"
+# Da wir das gesamte Repo clonen, zeigt S auf das Server-Verzeichnis darin:
+S = "${WORKDIR}/git/server"
 
-# Verhindert, dass Yocto nach Git-Metadaten sucht
+# Verhindert, dass Yocto nach unpassenden Upstream-Prüfsummen sucht
 BB_STRICT_CHECKSUM = "0"
 do_deploy_source_date_epoch[noexec] = "1"
 
-# TODO: Add the aesdsocket application and any other files you need to install
+# Add the aesdsocket application and any other files you need to install
 # See https://git.yoctoproject.org/poky/plain/meta/conf/bitbake.conf?h=kirkstone
 # --- INIT SCRIPT ---
 inherit update-rc.d
