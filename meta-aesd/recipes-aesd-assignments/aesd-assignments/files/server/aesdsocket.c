@@ -55,29 +55,13 @@ static void signal_handler(int signal_number)
 void *threadfunc(void *arg)
 {
     struct thread_data *th_arg = (struct thread_data *)arg;
-    void *addr;
-    char s[INET6_ADDRSTRLEN];
 
-    if (th_arg->their_addr.ss_family == AF_INET) 
-    {
-        struct sockaddr_in *ipv4 = (struct sockaddr_in *)&th_arg->their_addr;
-        addr = &(ipv4->sin_addr);
-    } 
-    else 
-    {
-        struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)&th_arg->their_addr;
-        addr = &(ipv6->sin6_addr);
-    }
-
-    inet_ntop(th_arg->their_addr.ss_family, addr, s, sizeof s);
-    syslog(LOG_DEBUG, "<AESDSOCKET>Accepted connection from %s", s);
-
-    /* -------- RECEIVE COMPLETE MESSAGE -------- */
     char buf[1024];
     char full_buf[2048] = {0};
     size_t total_len = 0;
     ssize_t bytes_received;
 
+    /* -------- RECEIVE COMPLETE MESSAGE -------- */
     while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
     {
         if (total_len + bytes_received < sizeof(full_buf)) 
@@ -90,13 +74,11 @@ void *threadfunc(void *arg)
             break;
     }
 
-    /* Ensure newline termination */
     if (total_len > 0 && full_buf[total_len - 1] != '\n') 
     {
         full_buf[total_len++] = '\n';
     }
 
-    // JETZT ERST DIE DATEI ÖFFNEN (Unter Mutex-Schutz)
     pthread_mutex_lock(&file_mutex);
 
     int fd = open(FOUT, O_RDWR);
@@ -106,47 +88,38 @@ void *threadfunc(void *arg)
         close(th_arg->new_fd);
         return NULL;
     }
-    //lseek(fd, 0, SEEK_SET);
 
     /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
-	if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0)
-	{
-		uint32_t cmd_idx, cmd_offset;
+    if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
+    {
+        uint32_t cmd_idx, cmd_offset;
 
-		if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
-		{
-			struct aesd_seekto seekto;
-			seekto.write_cmd = cmd_idx;
-			seekto.write_cmd_offset = cmd_offset;
+        if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
+        {
+            struct aesd_seekto seekto;
+            seekto.write_cmd = cmd_idx;
+            seekto.write_cmd_offset = cmd_offset;
 
-			if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
-			{
-				syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
-			}
-		}
-	} 
-	else 
-	{
-		size_t written_total = 0;
-		while (written_total < total_len) 
-		{
-			ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
-			if (written < 0) break;
-			written_total += written;
-		}
-	}
+            if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
+            {
+                syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
+            }
+        }
+    } 
+    else 
+    {
+        size_t written_total = 0;
+        while (written_total < total_len) 
+        {
+            ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
+            if (written < 0) break;
+            written_total += written;
+        }
+    }
 
-	/* ✅ IMMER danach */
-	fsync(fd);
-
-    // exec lseek ONLY when working with regular files
-#if !USE_AESD_CHAR_DEVICE
+    /* KRITISCH: IMMER danach */
+    fsync(fd);
     lseek(fd, 0, SEEK_SET);
-#else
-    // Für das Device: Schließen und neu öffnen, damit f_pos wieder bei 0 startet
-    close(fd);
-    fd = open(FOUT, O_RDONLY);
-#endif
 
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
@@ -164,11 +137,9 @@ void *threadfunc(void *arg)
         }
     }
 
-    // close file and unlock mutex
     close(fd);
     pthread_mutex_unlock(&file_mutex);
 
-    /* -------- CLEANUP -------- */
     close(th_arg->new_fd);
 
     pthread_mutex_lock(&file_mutex);
