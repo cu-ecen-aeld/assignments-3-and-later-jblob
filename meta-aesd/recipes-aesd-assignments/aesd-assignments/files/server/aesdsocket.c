@@ -142,8 +142,8 @@ void *threadfunc(void *arg)
         lseek(fd, 0, SEEK_SET);
 #else
         // Für das Device: Schließen und neu öffnen, damit f_pos wieder bei 0 startet
-        //close(fd);
-        //fd = open(FOUT, O_RDONLY);
+        close(fd);
+        fd = open(FOUT, O_RDONLY);
 #endif
     }
 
