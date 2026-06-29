@@ -73,6 +73,8 @@ void *threadfunc(void *arg)
         if (memchr(buf, '\n', bytes_received) != NULL)
             break;
     }
+    
+    full_buf[total_len] = '\0';
 
     if (total_len > 0 && full_buf[total_len - 1] != '\n') 
     {
