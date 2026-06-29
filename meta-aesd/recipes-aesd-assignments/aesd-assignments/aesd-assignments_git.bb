@@ -10,7 +10,7 @@ SRC_URI = "git://${WORKSPACE};protocol=file;branch=main"
 # Der offizielle Commit-Hash deines Repos (wird von der CI/Autotester überschrieben, 
 # muss aber für den lokalen Test initial auf einen validen Stand zeigen)
 #SRCREV = "${AUTOREV}"
-SRCREV = "6051b63537446bc55ad4b664f887d32f52b85946"
+SRCREV = "4806ecdb2e53b65ea5dcac7e8080beb2624f646b"
 
 # Da wir das gesamte Repo clonen, zeigt S auf das Server-Verzeichnis darin:
 S = "${WORKDIR}/git/server"
