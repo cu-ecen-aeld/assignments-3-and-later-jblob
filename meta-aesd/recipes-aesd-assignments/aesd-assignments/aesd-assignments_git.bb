@@ -14,8 +14,11 @@ inherit update-rc.d
 INIT_SCRIPT_PACKAGES = "${PN}"
 INITSCRIPT_NAME:${PN} = "S99aesdsocket"
 
-FILES:${PN} += "${bindir}/aesdsocket"
-FILES:${PN} += "${sysconfdir}/init.d/S99aesdsocket"
+#FILES:${PN} += "${bindir}/aesdsocket"
+#FILES:${PN} += "${sysconfdir}/init.d/S99aesdsocket"
+
+FILES:${PN} += "${sbindir}/aesdsocket"
+FILES:${PN} += "${sysconfdir}/init.d/aesdsocket-start-stop"
 
 TARGET_LDFLAGS += "-lpthread -lrt"
 
@@ -27,11 +30,11 @@ do_compile () {
 	oe_runmake
 }
 
-do_install () {
-	install -d ${D}${bindir}
-	install -m 0755 aesdsocket ${D}${bindir}/
-	install -d ${D}${sysconfdir}/init.d
-	
-	# Nutzt den korrekten Pfad ausgehend von der CI-Verzeichnisstruktur
-	install -m 0755 ${BASE_WORKDIR}/../../.. /assignment-autotest/test/assignment9-yocto/S99aesdsocket ${D}${sysconfdir}/init.d/
+
+do_install() {
+    install -d ${D}${sbindir}
+    install -m 0755 aesdsocket ${D}${sbindir}/
+
+    install -d ${D}${sysconfdir}/init.d
+    install -m 0755 aesdsocket-start-stop ${D}${sysconfdir}/init.d/
 }
