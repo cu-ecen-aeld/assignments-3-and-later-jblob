@@ -109,35 +109,35 @@ void *threadfunc(void *arg)
     //lseek(fd, 0, SEEK_SET);
 
     /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
-    if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
-    {
-        uint32_t cmd_idx, cmd_offset;
+	if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0)
+	{
+		uint32_t cmd_idx, cmd_offset;
 
-        if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
-        {
-            struct aesd_seekto seekto;
-            seekto.write_cmd = cmd_idx;
-            seekto.write_cmd_offset = cmd_offset;
+		if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
+		{
+			struct aesd_seekto seekto;
+			seekto.write_cmd = cmd_idx;
+			seekto.write_cmd_offset = cmd_offset;
 
-            if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
-            {
-                syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
-            }
-        }
-    } 
-    else 
-    {
-        /* -------- NORMAL WRITE -------- */
-        size_t written_total = 0;
-        while (written_total < total_len) 
-        {
-            ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
-            if (written < 0) break;
-            written_total += written;
-        }
-        
-        fsync(fd);
-    }
+			if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
+			{
+				syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
+			}
+		}
+	} 
+	else 
+	{
+		size_t written_total = 0;
+		while (written_total < total_len) 
+		{
+			ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
+			if (written < 0) break;
+			written_total += written;
+		}
+	}
+
+	/* ✅ IMMER danach */
+	fsync(fd);
 
     // exec lseek ONLY when working with regular files
 #if !USE_AESD_CHAR_DEVICE
