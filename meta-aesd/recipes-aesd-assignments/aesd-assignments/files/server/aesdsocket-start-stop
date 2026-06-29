@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Start/stop the aesdsocket daemon.
+
+DAEMON=/usr/bin/aesdsocket
+DAEMON_NAME=aesdsocket
+
+case "$1" in
+	start)
+		echo "Starting aesd socket server"
+		# -b (background) und -m (make-pidfile) sind oft sicherer
+		start-stop-daemon -S -b -n $DAEMON_NAME -a $DAEMON -- -d
+		;;
+	stop)
+		echo "Stopping aesd socket server"
+		start-stop-daemon -K -n $DAEMON_NAME
+		;;
+	*)
+		echo "Usage: $0 {start|stop}"
+		exit 1
+		;;
+esac
+
+exit 0

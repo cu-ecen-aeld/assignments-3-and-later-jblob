@@ -1,23 +1,22 @@
 # See https://git.yoctoproject.org/poky/tree/meta/files/common-licenses
+
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-SRC_URI = "git://${THISDIR}/../../../;protocol=file;branch=main"
+SRC_URI = "file://server"
 
-SRCREV = "${AUTOREV}"
+S = "${WORKDIR}/server"
 
-S = "${WORKDIR}/git/server"
-
-BB_STRICT_CHECKSUM = "0"
-do_deploy_source_date_epoch[noexec] = "1"
-BB_GIT_SHALLOW = "0"
+PV = "1.0"
 
 inherit update-rc.d
-INITSCRIPT_PACKAGES = "${PN}"
+
+INIT_SCRIPT_PACKAGES = "${PN}"
 INITSCRIPT_NAME:${PN} = "S99aesdsocket"
 
 FILES:${PN} += "${bindir}/aesdsocket"
 FILES:${PN} += "${sysconfdir}/init.d/S99aesdsocket"
+
 TARGET_LDFLAGS += "-lpthread -lrt"
 
 do_configure () {
