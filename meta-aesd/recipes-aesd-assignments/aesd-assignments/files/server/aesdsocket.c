@@ -114,6 +114,7 @@ void *threadfunc(void *arg)
         while (written_total < total_len) 
         {
             ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
+            syslog(LOG_ERR, "WRITE total_len=%zu", total_len);
             if (written < 0) break;
             written_total += written;
         }
@@ -127,12 +128,15 @@ void *threadfunc(void *arg)
     char send_buf[1024];
     ssize_t bytes_read;
 
+	syslog(LOG_ERR, "START READ");
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
+        syslog(LOG_ERR, "READ returned %zd", bytes_read);
         size_t sent_total = 0;
         while (sent_total < bytes_read) 
         {
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
+            syslog(LOG_ERR, "SEND returned %zd", sent);
             if (sent < 0) 
                 break;
             sent_total += sent;
