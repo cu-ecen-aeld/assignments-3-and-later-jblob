@@ -32,5 +32,7 @@ do_install () {
 	install -d ${D}${bindir}
 	install -m 0755 aesdsocket ${D}${bindir}/
 	install -d ${D}${sysconfdir}/init.d
-	install -m 0755 ${WORKDIR}/git/assignment-autotest/test/assignment9-yocto/S99aesdsocket ${D}${sysconfdir}/init.d/
+	
+	# Nutzt den korrekten Pfad ausgehend von der CI-Verzeichnisstruktur
+	install -m 0755 ${BASE_WORKDIR}/../../.. /assignment-autotest/test/assignment9-yocto/S99aesdsocket ${D}${sysconfdir}/init.d/
 }
