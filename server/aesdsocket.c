@@ -163,7 +163,7 @@ void *threadfunc(void *arg)
         }
     }
 
-    // DATEI SCHLIESSEN UND MUTEX UNLOCK
+    // close file and unlock mutex
     close(fd);
     pthread_mutex_unlock(&file_mutex);
 
