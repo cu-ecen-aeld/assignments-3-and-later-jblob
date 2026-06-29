@@ -4,12 +4,13 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 # Wir nutzen das lokale git-Protokoll relativ zum Rezeptordner.
 # Das zieht das gesamte Repo sauber über den Git-Fetcher.
-SRC_URI = "git://${THISDIR}/../../../;protocol=file;branch=main"
+#SRC_URI = "git://${THISDIR}/../../../;protocol=file;branch=main"
+SRC_URI = "git://${WORKSPACE};protocol=file;branch=main"
 
 # Der offizielle Commit-Hash deines Repos (wird von der CI/Autotester überschrieben, 
 # muss aber für den lokalen Test initial auf einen validen Stand zeigen)
 #SRCREV = "${AUTOREV}"
-SRCREV = "c0958c256735dd3f09e1c64ace94c504c1f49f2b"
+SRCREV = "6051b63537446bc55ad4b664f887d32f52b85946"
 
 # Da wir das gesamte Repo clonen, zeigt S auf das Server-Verzeichnis darin:
 S = "${WORKDIR}/git/server"
