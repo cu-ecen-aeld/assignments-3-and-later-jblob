@@ -61,9 +61,12 @@ void *threadfunc(void *arg)
     size_t total_len = 0;
     ssize_t bytes_received;
 
+	syslog(LOG_ERR, "THREAD START");
+
     /* -------- RECEIVE COMPLETE MESSAGE -------- */
     while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
     {
+		syslog(LOG_ERR, "RECV total_len=%zu", total_len);
         if (total_len + bytes_received < sizeof(full_buf)) 
         {
             memcpy(full_buf + total_len, buf, bytes_received);
@@ -94,6 +97,7 @@ void *threadfunc(void *arg)
     /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
+		syslog(LOG_ERR, "IOCTL branch");
         uint32_t cmd_idx, cmd_offset;
 
         if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
@@ -110,6 +114,7 @@ void *threadfunc(void *arg)
     } 
     else 
     {
+		syslog(LOG_ERR, "WRITE branch");
         size_t written_total = 0;
         while (written_total < total_len) 
         {
@@ -151,6 +156,8 @@ void *threadfunc(void *arg)
     pthread_mutex_lock(&file_mutex);
     th_arg->bThreadCompleted = true;
     pthread_mutex_unlock(&file_mutex);
+
+	syslog(LOG_ERR, "THREAD DONE");
 
     return NULL;
 }
