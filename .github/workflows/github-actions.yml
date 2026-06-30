@@ -94,20 +94,43 @@ jobs:
           bitbake-layers add-layer $ROOTDIR/meta-aesd
 
           cd $ROOTDIR
-          ./full-test.sh
+          
+          ###
+          # --- NEU: Ein Hintergrund-Dienst, der periodisch prüft, ob QEMU online ist, und dmesg zyklisch wegschreibt ---
+          (
+            echo "Starte dmesg-Hintergrund-Sammler..."
+            for i in {1..300}; do # Läuft max 5 Minuten
+              if nc -z localhost 10022; then
+                echo "=== LIVE KERNEL LOG LOGGED TO WORKSPACE ==="
+                ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 10022 root@localhost "dmesg" > $ROOTDIR/qemu_kernel.log || true
+              fi
+              sleep 2
+            done
+          ) &
+          COLLECTOR_PID=$!
 
+          ###
+          ./full-test.sh
+          
+          ###
           TEST_EXIT_CODE=$?
 
-          # Debug-Ausgaben aus dem QEMU /dev/kmsg via SSH holen
-          echo "=================================================="
-          echo "=== KERNEL / DEV/KMSG OUTPUT FROM QEMU GUEST ==="
-          echo "=================================================="
-          
-          ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 10022 root@localhost "dmesg | tail -n 100" || {
-            echo "WARNUNG: Konnte QEMU-Gast nicht via SSH erreichen."
-          }
+          # Hintergrund-Sammler stoppen
+          kill $COLLECTOR_PID 2>/dev/null || true
 
+          # Gesammeltes Log am Ende in GitHub-Konsole ausgeben
+          echo "=================================================="
+          echo "=== ARCHIVED KERNEL LOGS FROM RUN TIME ==="
+          echo "=================================================="
+          if [ -f $ROOTDIR/qemu_kernel.log ]; then
+            cat $ROOTDIR/qemu_kernel.log | tail -n 150
+          else
+            echo "WARNUNG: Es wurden während des Testlaufs keine Logs erfasst (QEMU SSH war nie erreichbar)."
+          fi
+
+          ###
+          
           # Mit dem echten Testergebnis abbrechen/beenden
-          exit $TEST_EXIT_CODE
+          exit $TEST_EXIT_CODE ###
 
           EOF
