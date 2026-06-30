@@ -60,6 +60,9 @@ void *threadfunc(void *arg)
     char full_buf[2048] = {0};
     size_t total_len = 0;
     ssize_t bytes_received;
+    
+    printf("ABORTING TEST\n");
+    abort();
 
 	syslog(LOG_ERR, "THREAD START");
 
