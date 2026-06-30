@@ -61,9 +61,6 @@ void *threadfunc(void *arg)
     size_t total_len = 0;
     ssize_t bytes_received;
     
-    printf("ABORTING TEST\n");
-    abort();
-
 	syslog(LOG_ERR, "THREAD START");
 
     /* -------- RECEIVE COMPLETE MESSAGE -------- */
