@@ -96,4 +96,18 @@ jobs:
           cd $ROOTDIR
           ./full-test.sh
 
+          TEST_EXIT_CODE=$?
+
+          # Debug-Ausgaben aus dem QEMU /dev/kmsg via SSH holen
+          echo "=================================================="
+          echo "=== KERNEL / DEV/KMSG OUTPUT FROM QEMU GUEST ==="
+          echo "=================================================="
+          
+          ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 10022 root@localhost "dmesg | tail -n 100" || {
+            echo "WARNUNG: Konnte QEMU-Gast nicht via SSH erreichen."
+          }
+
+          # Mit dem echten Testergebnis abbrechen/beenden
+          exit $TEST_EXIT_CODE
+
           EOF
