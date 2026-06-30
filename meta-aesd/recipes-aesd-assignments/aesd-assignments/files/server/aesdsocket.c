@@ -52,6 +52,8 @@ static void signal_handler(int signal_number)
 	}
 }
 
+#define DEBUG_THREAD
+
 void *threadfunc(void *arg)
 {
     struct thread_data *th_arg = (struct thread_data *)arg;
@@ -63,9 +65,20 @@ void *threadfunc(void *arg)
     
 	syslog(LOG_ERR, "THREAD START");
 
+#ifdef DEBUG_THREAD
+	FILE *dbg = fopen("/tmp/aesd.log","a");
+	fprintf(dbg,"THREAD START\n");
+	fclose(dbg);
+#endif
+
     /* -------- RECEIVE COMPLETE MESSAGE -------- */
     while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
     {
+#ifdef DEBUG_THREAD
+		FILE *dbg = fopen("/tmp/aesd.log","a");
+		fprintf(dbg,"RECV total_len=%zu\n", total_len);
+		fclose(dbg);
+#endif
 		syslog(LOG_ERR, "RECV total_len=%zu", total_len);
         if (total_len + bytes_received < sizeof(full_buf)) 
         {
@@ -97,6 +110,11 @@ void *threadfunc(void *arg)
     /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
+#ifdef DEBUG_THREAD
+		FILE *dbg = fopen("/tmp/aesd.log","a");
+		fprintf(dbg,"IOCTL branch\n");
+		fclose(dbg);
+#endif
 		syslog(LOG_ERR, "IOCTL branch");
         uint32_t cmd_idx, cmd_offset;
 
@@ -108,17 +126,32 @@ void *threadfunc(void *arg)
 
             if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
             {
+#ifdef DEBUG_THREAD
+				FILE *dbg = fopen("/tmp/aesd.log","a");
+				fprintf(dbg,"ioctl failed\n");
+				fclose(dbg);
+#endif
                 syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
             }
         }
     } 
     else 
     {
+#ifdef DEBUG_THREAD
+		FILE *dbg = fopen("/tmp/aesd.log","a");
+		fprintf(dbg,"WRITE branch\n");
+		fclose(dbg);
+#endif
 		syslog(LOG_ERR, "WRITE branch");
         size_t written_total = 0;
         while (written_total < total_len) 
         {
             ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
+#ifdef DEBUG_THREAD
+			FILE *dbg = fopen("/tmp/aesd.log","a");
+			fprintf(dbg,"WRITE total_len=%zu\n", total_len);
+			fclose(dbg);
+#endif
             syslog(LOG_ERR, "WRITE total_len=%zu", total_len);
             if (written < 0) break;
             written_total += written;
@@ -142,20 +175,41 @@ void *threadfunc(void *arg)
     char send_buf[1024];
     ssize_t bytes_read;
 
+#ifdef DEBUG_THREAD
+	FILE *dbg = fopen("/tmp/aesd.log","a");
+	fprintf(dbg,"START READ\n", total_len);
+	fclose(dbg);
+#endif
 	syslog(LOG_ERR, "START READ");
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
+#ifdef DEBUG_THREAD
+		FILE *dbg = fopen("/tmp/aesd.log","a");
+		fprintf(dbg,"READ returned %zd\n", bytes_read);
+		fclose(dbg);
+#endif
         syslog(LOG_ERR, "READ returned %zd", bytes_read);
         size_t sent_total = 0;
         while (sent_total < bytes_read) 
         {
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
+#ifdef DEBUG_THREAD
+			FILE *dbg = fopen("/tmp/aesd.log","a");
+			fprintf(dbg,"SEND returned %zd\n", sent);
+			fclose(dbg);
+#endif
             syslog(LOG_ERR, "SEND returned %zd", sent);
             if (sent < 0) 
                 break;
             sent_total += sent;
         }
     }
+
+#ifdef DEBUG_THREAD
+		FILE *dbg = fopen("/tmp/aesd.log","a");
+		fprintf(dbg,"READ DONE\n");
+		fclose(dbg);
+#endif
 
     close(fd);
     pthread_mutex_unlock(&file_mutex);
@@ -166,6 +220,11 @@ void *threadfunc(void *arg)
     th_arg->bThreadCompleted = true;
     pthread_mutex_unlock(&file_mutex);
 
+#ifdef DEBUG_THREAD
+		FILE *dbg = fopen("/tmp/aesd.log","a");
+		fprintf(dbg,"THREAD DONE");
+		fclose(dbg);
+#endif
 	syslog(LOG_ERR, "THREAD DONE");
 
     return NULL;
