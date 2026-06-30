@@ -66,7 +66,8 @@ void *threadfunc(void *arg)
 	syslog(LOG_ERR, "THREAD START");
 
 #ifdef DEBUG_THREAD
-	FILE *dbg = fopen("/tmp/aesd.log","a");
+	FILE *dbg;
+	dbg = fopen("/tmp/aesd.log","a");
 	fprintf(dbg,"THREAD START\n");
 	fclose(dbg);
 #endif
@@ -75,7 +76,7 @@ void *threadfunc(void *arg)
     while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
     {
 #ifdef DEBUG_THREAD
-		FILE *dbg = fopen("/tmp/aesd.log","a");
+		dbg = fopen("/tmp/aesd.log","a");
 		fprintf(dbg,"RECV total_len=%zu\n", total_len);
 		fclose(dbg);
 #endif
@@ -111,7 +112,7 @@ void *threadfunc(void *arg)
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
 #ifdef DEBUG_THREAD
-		FILE *dbg = fopen("/tmp/aesd.log","a");
+		dbg = fopen("/tmp/aesd.log","a");
 		fprintf(dbg,"IOCTL branch\n");
 		fclose(dbg);
 #endif
@@ -127,7 +128,7 @@ void *threadfunc(void *arg)
             if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
             {
 #ifdef DEBUG_THREAD
-				FILE *dbg = fopen("/tmp/aesd.log","a");
+				dbg = fopen("/tmp/aesd.log","a");
 				fprintf(dbg,"ioctl failed\n");
 				fclose(dbg);
 #endif
@@ -138,7 +139,7 @@ void *threadfunc(void *arg)
     else 
     {
 #ifdef DEBUG_THREAD
-		FILE *dbg = fopen("/tmp/aesd.log","a");
+		dbg = fopen("/tmp/aesd.log","a");
 		fprintf(dbg,"WRITE branch\n");
 		fclose(dbg);
 #endif
@@ -148,7 +149,7 @@ void *threadfunc(void *arg)
         {
             ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
 #ifdef DEBUG_THREAD
-			FILE *dbg = fopen("/tmp/aesd.log","a");
+			dbg = fopen("/tmp/aesd.log","a");
 			fprintf(dbg,"WRITE total_len=%zu\n", total_len);
 			fclose(dbg);
 #endif
@@ -176,7 +177,7 @@ void *threadfunc(void *arg)
     ssize_t bytes_read;
 
 #ifdef DEBUG_THREAD
-	FILE *dbg = fopen("/tmp/aesd.log","a");
+	dbg = fopen("/tmp/aesd.log","a");
 	fprintf(dbg,"START READ\n", total_len);
 	fclose(dbg);
 #endif
@@ -184,7 +185,7 @@ void *threadfunc(void *arg)
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
 #ifdef DEBUG_THREAD
-		FILE *dbg = fopen("/tmp/aesd.log","a");
+		dbg = fopen("/tmp/aesd.log","a");
 		fprintf(dbg,"READ returned %zd\n", bytes_read);
 		fclose(dbg);
 #endif
@@ -194,7 +195,7 @@ void *threadfunc(void *arg)
         {
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
 #ifdef DEBUG_THREAD
-			FILE *dbg = fopen("/tmp/aesd.log","a");
+			dbg = fopen("/tmp/aesd.log","a");
 			fprintf(dbg,"SEND returned %zd\n", sent);
 			fclose(dbg);
 #endif
@@ -206,7 +207,7 @@ void *threadfunc(void *arg)
     }
 
 #ifdef DEBUG_THREAD
-		FILE *dbg = fopen("/tmp/aesd.log","a");
+		dbg = fopen("/tmp/aesd.log","a");
 		fprintf(dbg,"READ DONE\n");
 		fclose(dbg);
 #endif
@@ -221,7 +222,7 @@ void *threadfunc(void *arg)
     pthread_mutex_unlock(&file_mutex);
 
 #ifdef DEBUG_THREAD
-		FILE *dbg = fopen("/tmp/aesd.log","a");
+		dbg = fopen("/tmp/aesd.log","a");
 		fprintf(dbg,"THREAD DONE");
 		fclose(dbg);
 #endif
