@@ -126,8 +126,17 @@ void *threadfunc(void *arg)
     }
 
     /* KRITISCH: IMMER danach */
-    fsync(fd);
-    lseek(fd, 0, SEEK_SET);
+	fsync(fd);
+
+	close(fd);
+
+	fd = open(FOUT, O_RDONLY);
+	if(fd < 0)
+	{
+		pthread_mutex_unlock(&file_mutex);
+		close(th_arg->new_fd);
+		return NULL;
+	}
 
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
