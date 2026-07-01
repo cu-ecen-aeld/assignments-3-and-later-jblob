@@ -55,6 +55,9 @@ static void signal_handler(int signal_number)
 #define DEBUG_THREAD
 //#define DEBUG_THREAD_LOG "/tmp/aesd.log"
 #define DEBUG_THREAD_LOG "/dev/kmsg"
+// define Kernel-Loglevel for userspace
+#define KBUILD_LOG_ERR   "<3>"
+#define KBUILD_LOG_DEBUG "<7>"
 
 void *threadfunc(void *arg)
 {
@@ -70,7 +73,8 @@ void *threadfunc(void *arg)
 #ifdef DEBUG_THREAD
 	FILE *dbg;
 	dbg = fopen(DEBUG_THREAD_LOG, "a");
-	fprintf(dbg,"THREAD START\n");
+	fprintf(dbg, KBUILD_LOG_ERR, "THREAD START\n");
+	fflush(dbg);
 	fclose(dbg);
 #endif
 
@@ -79,7 +83,8 @@ void *threadfunc(void *arg)
     {
 #ifdef DEBUG_THREAD
 		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg,"RECV total_len=%zu\n", total_len);
+		fprintf(dbg, KBUILD_LOG_ERR, "RECV total_len=%zu\n", total_len);
+		fflush(dbg);
 		fclose(dbg);
 #endif
 		syslog(LOG_ERR, "RECV total_len=%zu", total_len);
@@ -96,8 +101,9 @@ void *threadfunc(void *arg)
 
 #ifdef DEBUG_THREAD
 	dbg = fopen(DEBUG_THREAD_LOG, "a");
-	fprintf(dbg, "RECV DONE bytes_received=%zd total_len=%zu\n", bytes_received, total_len);
-	fprintf(dbg, "RX='%s'\n", full_buf);
+	fprintf(dbg,  KBUILD_LOG_ERR, "RECV DONE bytes_received=%zd total_len=%zu\n", bytes_received, total_len);
+	fprintf(dbg,  KBUILD_LOG_ERR, "RX='%s'\n", full_buf);
+	fflush(dbg);
 	fclose(dbg);
 #endif
     
@@ -124,7 +130,8 @@ void *threadfunc(void *arg)
     {
 #ifdef DEBUG_THREAD
 		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg,"IOCTL branch\n");
+		fprintf(dbg, KBUILD_LOG_ERR, "IOCTL branch\n");
+		fflush(dbg);
 		fclose(dbg);
 #endif
 		syslog(LOG_ERR, "IOCTL branch");
@@ -140,7 +147,8 @@ void *threadfunc(void *arg)
             {
 #ifdef DEBUG_THREAD
 				dbg = fopen(DEBUG_THREAD_LOG, "a");
-				fprintf(dbg,"ioctl failed\n");
+				fprintf(dbg, KBUILD_LOG_ERR, "ioctl failed\n");
+				fflush(dbg);
 				fclose(dbg);
 #endif
                 syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
@@ -151,7 +159,8 @@ void *threadfunc(void *arg)
     {
 #ifdef DEBUG_THREAD
 		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg,"WRITE branch\n");
+		fprintf(dbg, KBUILD_LOG_ERR, "WRITE branch\n");
+		fflush(dbg);
 		fclose(dbg);
 #endif
 		syslog(LOG_ERR, "WRITE branch");
@@ -161,10 +170,11 @@ void *threadfunc(void *arg)
             ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
 #ifdef DEBUG_THREAD
 			dbg = fopen(DEBUG_THREAD_LOG, "a");
-			fprintf(dbg,"WRITE total_len=%zu\n", total_len);
+			fprintf(dbg, KBUILD_LOG_ERR, "WRITE total_len=%zu\n", total_len);
+			fflush(dbg);
 			fclose(dbg);
 #endif
-            syslog(LOG_ERR, "WRITE total_len=%zu", total_len);
+            syslog(LOG_ERR,  KBUILD_LOG_ERR, "WRITE total_len=%zu", total_len);
             if (written < 0) break;
             written_total += written;
         }
@@ -189,7 +199,8 @@ void *threadfunc(void *arg)
 
 #ifdef DEBUG_THREAD
 	dbg = fopen(DEBUG_THREAD_LOG, "a");
-	fprintf(dbg,"START READ\n", total_len);
+	fprintf(dbg, KBUILD_LOG_ERR, "START READ\n", total_len);
+	fflush(dbg);
 	fclose(dbg);
 #endif
 	syslog(LOG_ERR, "START READ");
@@ -197,7 +208,8 @@ void *threadfunc(void *arg)
     {
 #ifdef DEBUG_THREAD
 		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg,"READ returned %zd\n", bytes_read);
+		fprintf(dbg, KBUILD_LOG_ERR, "READ returned %zd\n", bytes_read);
+		fflush(dbg);
 		fclose(dbg);
 #endif
         syslog(LOG_ERR, "READ returned %zd", bytes_read);
@@ -207,7 +219,8 @@ void *threadfunc(void *arg)
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
 #ifdef DEBUG_THREAD
 			dbg = fopen(DEBUG_THREAD_LOG, "a");
-			fprintf(dbg,"SEND returned %zd\n", sent);
+			fprintf(dbg, KBUILD_LOG_ERR, "SEND returned %zd\n", sent);
+			fflush(dbg);
 			fclose(dbg);
 #endif
             syslog(LOG_ERR, "SEND returned %zd", sent);
@@ -219,7 +232,8 @@ void *threadfunc(void *arg)
 
 #ifdef DEBUG_THREAD
 		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg,"READ DONE\n");
+		fprintf(dbg, KBUILD_LOG_ERR, "READ DONE\n");
+		fflush(dbg);
 		fclose(dbg);
 #endif
 
@@ -234,7 +248,8 @@ void *threadfunc(void *arg)
 
 #ifdef DEBUG_THREAD
 		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg,"THREAD DONE");
+		fprintf(dbg, KBUILD_LOG_ERR, "THREAD DONE");
+		fflush(dbg);
 		fclose(dbg);
 #endif
 	syslog(LOG_ERR, "THREAD DONE");
