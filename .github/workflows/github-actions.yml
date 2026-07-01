@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies + locale + socat
         run: |
           apt-get update
-          apt-get install -y locales python3-distutils gawk chrpath diffstat lz4 zstd unzip build-essential socat
+          apt-get install -y locales python3-distutils gawk chrpath diffstat lz4 zstd unzip build-essential socat iproute2
           echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
           locale-gen
 
