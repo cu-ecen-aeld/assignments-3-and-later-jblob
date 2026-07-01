@@ -77,6 +77,15 @@ jobs:
           echo 'INHERIT += "extrausers"' >> build/conf/local.conf
           echo 'EXTRA_USERS_PARAMS = "usermod -p '\'''\'' root;"' >> build/conf/local.conf
 
+          # Zwingt QEMU, alles direkt auf stdout auszugeben (keine GUI)
+          echo 'TEST_RUNQEMU_PARAM = "nographic"' >> build/conf/local.conf
+
+          # Schaltet das Log-Level im QEMU-Kernel auf Maximum, damit jede /dev/kmsg-Meldung sofort auf der Konsole erscheint
+          echo 'APPEND:append = " console=ttyAMA0 loglevel=8"' >> build/conf/local.conf
+
+          # Sichert den gesamten Boot- und Konsolenverlauf in den Yocto-Logs
+          echo 'IMAGE_CLASSES += "testimage"' >> build/conf/local.conf
+
           EOF
 
       - name: Run full test
