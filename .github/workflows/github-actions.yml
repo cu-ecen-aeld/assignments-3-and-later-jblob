@@ -101,23 +101,31 @@ jobs:
           source poky/oe-init-build-env build
 
           bitbake-layers add-layer $ROOTDIR/meta-aesd
+          
+          ###  new ### force yocto to rebuild the app and the driver
+          echo "=== FORCE REBUILD OF AESD COMPONENTS ==="
+          bitbake -c cleansstate aesdsocket || true
+          bitbake -c cleansstate aesdchar || true
+          ### /new ###
 
           cd $ROOTDIR
           
           ###
           # --- NEU: Ein Hintergrund-Dienst, der periodisch prüft, ob QEMU online ist, und dmesg zyklisch wegschreibt ---
+          # --- Optimierter Syslog-Sammler für Daemons ---
           (
-            echo "Starte dmesg-Hintergrund-Sammler..."
-            for i in {1..300}; do # Läuft max 5 Minuten
+            echo "Starte Syslog-Hintergrund-Sammler..."
+            rm -f $ROOTDIR/qemu_syslog.log
+            while true; do
               if nc -z localhost 10022; then
-                echo "=== LIVE KERNEL LOG LOGGED TO WORKSPACE ==="
-                ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 10022 root@localhost "dmesg" > $ROOTDIR/qemu_kernel.log || true
+                # Holt die echten Anwendungs-Logs aus dem QEMU-System
+                ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 10022 root@localhost "cat /var/log/messages 2>/dev/null | grep -E 'aesd|THREAD|RECV|WRITE'" >> $ROOTDIR/qemu_syslog.log || true
               fi
-              sleep 2
+              sleep 1
             done
           ) &
           COLLECTOR_PID=$!
-
+          
           ###
           ./full-test.sh
           
@@ -126,7 +134,15 @@ jobs:
 
           # Hintergrund-Sammler stoppen
           kill $COLLECTOR_PID 2>/dev/null || true
-
+          echo "=================================================="
+          echo "=== APPLICATION SYSLOGS FROM DAEMON RUN ==="
+          echo "=================================================="
+          if [ -s $ROOTDIR/qemu_syslog.log ]; then
+            cat $ROOTDIR/qemu_syslog.log
+          else
+            echo "WARNUNG: Keine Syslogs gefunden. Entweder lief der Daemon nicht oder der SSH-Zugriff schlug fehl."
+          fi
+          
           # Gesammeltes Log am Ende in GitHub-Konsole ausgeben
           echo "=================================================="
           echo "=== ARCHIVED KERNEL LOGS FROM RUN TIME ==="
