@@ -53,7 +53,7 @@ jobs:
              sleep 1
            done) &
 
-      - name: Configure Yocto cleanly (HEREDOC = no quoting errors)
+      - name: Configure Yocto cleanly (via HEREDOC)
         run: |
           su builder -s /bin/bash <<'EOF'
 
@@ -77,13 +77,13 @@ jobs:
           echo 'INHERIT += "extrausers"' >> build/conf/local.conf
           echo 'EXTRA_USERS_PARAMS = "usermod -p '\'''\'' root;"' >> build/conf/local.conf
 
-          # Zwingt QEMU, alles direkt auf stdout auszugeben (keine GUI)
+          # force QEMU to print directly on stdout (no GUI)
           echo 'TEST_RUNQEMU_PARAM = "nographic"' >> build/conf/local.conf
 
-          # Schaltet das Log-Level im QEMU-Kernel auf Maximum, damit jede /dev/kmsg-Meldung sofort auf der Konsole erscheint
+          # set loglevel in QEMU-Kernel to maximum so that every /dev/kmsg-message is print to console
           echo 'APPEND:append = " console=ttyAMA0 loglevel=8"' >> build/conf/local.conf
 
-          # Sichert den gesamten Boot- und Konsolenverlauf in den Yocto-Logs
+          # print the complete boot- and consolen output in the Yocto-Logs
           echo 'IMAGE_CLASSES += "testimage"' >> build/conf/local.conf
 
           EOF
