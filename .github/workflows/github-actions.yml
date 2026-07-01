@@ -104,7 +104,7 @@ jobs:
           
           ###  new ### force yocto to rebuild the app and the driver
           echo "=== FORCE REBUILD OF AESD COMPONENTS ==="
-          bitbake -c cleansstate aesdsocket || true
+          bitbake -c cleansstate aesd-assignments || true
           bitbake -c cleansstate aesdchar || true
           ### /new ###
 
