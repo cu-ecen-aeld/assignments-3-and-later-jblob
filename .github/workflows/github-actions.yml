@@ -111,6 +111,17 @@ jobs:
           cd $ROOTDIR
           
           ###
+
+          sed -i '/echo "Test complete with failure"/i\
+          echo "=== AESD DEBUG BEFORE SOCKET FAILURE ==="\
+          ps | grep aesd || true\
+          ls -l /dev/aesdchar 2>/dev/null || true\
+          cat /tmp/aesd.log 2>/dev/null || true\
+          dmesg | grep AESDDBG || true\
+          echo "=== END AESD DEBUG ==="' assignment-autotest/test/assignment9-yocto/sockettest.sh
+          ###
+          
+          ###
           # --- NEU: Ein Hintergrund-Dienst, der periodisch prüft, ob QEMU online ist, und dmesg zyklisch wegschreibt ---
           # --- Optimierter Syslog-Sammler für Daemons ---
           (
