@@ -207,7 +207,7 @@ void *threadfunc(void *arg)
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
 #ifdef DEBUG_THREAD
-		dbglog(dbg, KBUILD_LOG_ERR, "READ returned %zd\n", bytes_read);
+		dbglog("READ returned %zd\n", bytes_read);
 #endif
         syslog(LOG_ERR, "READ returned %zd", bytes_read);
         size_t sent_total = 0;
