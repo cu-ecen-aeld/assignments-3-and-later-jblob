@@ -42,7 +42,7 @@
 #define KBUILD_LOG_DEBUG "<7>"
 
 
-#if DEBUG_THREAD
+#ifdef DEBUG_THREAD
 static void dbglog(const char *fmt, ...)
 {
     FILE *dbg = fopen(DEBUG_THREAD_LOG, "w");
