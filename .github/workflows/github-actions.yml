@@ -127,30 +127,7 @@ jobs:
           COLLECTOR_PID=$!
           
           ###
-          
-          (
-            echo "Starte Port-9000-Tunnel-Sammler..."
-            while true; do
-              if nc -z localhost 10022; then
-                if ! nc -z localhost 9000; then
-                  echo "Versuche SSH-Tunnel localhost:9000 -> QEMU:9000 zu starten"
-                  ssh \
-                    -o StrictHostKeyChecking=no \
-                    -o UserKnownHostsFile=/dev/null \
-                    -o LogLevel=ERROR \
-                    -o ExitOnForwardFailure=yes \
-                    -f -N \
-                    -p 10022 \
-                    -L 9000:localhost:9000 \
-                    root@localhost || true
-                fi
-              fi
-              sleep 1
-            done
-          ) &
-          TUNNEL_PID=$!          
-          
-          ###
+
           ./full-test.sh
           
           ###
@@ -177,8 +154,6 @@ jobs:
             echo "WARNUNG: Es wurden während des Testlaufs keine Logs erfasst (QEMU SSH war nie erreichbar)."
           fi
 
-          ###
-          kill $TUNNEL_PID 2>/dev/null || true
           ###
           
           # Mit dem echten Testergebnis abbrechen/beenden
