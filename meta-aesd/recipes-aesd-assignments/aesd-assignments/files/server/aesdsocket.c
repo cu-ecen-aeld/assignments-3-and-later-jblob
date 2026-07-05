@@ -130,10 +130,6 @@ void *threadfunc(void *arg)
         full_buf[total_len++] = '\n';
     }
 
-    pthread_mutex_lock(&file_mutex);
-
-    int fd = open(FOUT, O_RDWR);
-
 	pthread_mutex_lock(&file_mutex);
 
 	int fd = open(FOUT, O_RDWR);
