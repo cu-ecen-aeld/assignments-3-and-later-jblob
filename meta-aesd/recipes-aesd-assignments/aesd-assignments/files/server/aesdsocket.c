@@ -8,6 +8,8 @@
 #include <sys/queue.h>
 #include <time.h>
 #include <fcntl.h>
+#include <stdarg.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -32,6 +34,36 @@
     #define FOUT "/var/tmp/aesdsocketdata"
 #endif
 
+#define DEBUG_THREAD
+//#define DEBUG_THREAD_LOG "/tmp/aesd.log"
+#define DEBUG_THREAD_LOG "/dev/kmsg"
+// define Kernel-Loglevel for userspace
+#define KBUILD_LOG_ERR   "<3>"
+#define KBUILD_LOG_DEBUG "<7>"
+
+
+#if DEBUG_THREAD
+static void dbglog(const char *fmt, ...)
+{
+    FILE *dbg = fopen(DEBUG_THREAD_LOG, "w");
+    if (dbg == NULL)
+    {
+        return;
+    }
+
+    fprintf(dbg, "<AESDDBGTHREAD>");
+
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(dbg, fmt, args);
+    va_end(args);
+
+    fprintf(dbg, "\n");
+    fflush(dbg);
+    fclose(dbg);
+}
+#endif
+
 volatile sig_atomic_t caught_sig  = false;
 
 pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -52,13 +84,6 @@ static void signal_handler(int signal_number)
 	}
 }
 
-#define DEBUG_THREAD
-//#define DEBUG_THREAD_LOG "/tmp/aesd.log"
-#define DEBUG_THREAD_LOG "/dev/kmsg"
-// define Kernel-Loglevel for userspace
-#define KBUILD_LOG_ERR   "<3>"
-#define KBUILD_LOG_DEBUG "<7>"
-
 void *threadfunc(void *arg)
 {
     struct thread_data *th_arg = (struct thread_data *)arg;
@@ -71,21 +96,14 @@ void *threadfunc(void *arg)
 	syslog(LOG_ERR, "THREAD START");
 
 #ifdef DEBUG_THREAD
-	FILE *dbg;
-	dbg = fopen(DEBUG_THREAD_LOG, "a");
-	fprintf(dbg, KBUILD_LOG_ERR, "THREAD START\n");
-	fflush(dbg);
-	fclose(dbg);
+	dbglog("THREAD START\n");
 #endif
 
     /* -------- RECEIVE COMPLETE MESSAGE -------- */
     while ((bytes_received = recv(th_arg->new_fd, buf, sizeof(buf), 0)) > 0) 
     {
 #ifdef DEBUG_THREAD
-		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg, KBUILD_LOG_ERR, "RECV total_len=%zu\n", total_len);
-		fflush(dbg);
-		fclose(dbg);
+		dbglog("RECV total_len=%zu\n", total_len);
 #endif
 		syslog(LOG_ERR, "RECV total_len=%zu", total_len);
         if (total_len + bytes_received < sizeof(full_buf)) 
@@ -100,11 +118,8 @@ void *threadfunc(void *arg)
 
 
 #ifdef DEBUG_THREAD
-	dbg = fopen(DEBUG_THREAD_LOG, "a");
-	fprintf(dbg,  KBUILD_LOG_ERR, "RECV DONE bytes_received=%zd total_len=%zu\n", bytes_received, total_len);
-	fprintf(dbg,  KBUILD_LOG_ERR, "RX='%s'\n", full_buf);
-	fflush(dbg);
-	fclose(dbg);
+	dbglog("RECV DONE bytes_received=%zd total_len=%zu\n", bytes_received, total_len);
+	dbglog("RX='%s'\n", full_buf);
 #endif
     
     full_buf[total_len] = '\0';
@@ -129,10 +144,7 @@ void *threadfunc(void *arg)
     if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
     {
 #ifdef DEBUG_THREAD
-		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg, KBUILD_LOG_ERR, "IOCTL branch\n");
-		fflush(dbg);
-		fclose(dbg);
+		dbglog("IOCTL branch\n");
 #endif
 		syslog(LOG_ERR, "IOCTL branch");
         uint32_t cmd_idx, cmd_offset;
@@ -146,10 +158,7 @@ void *threadfunc(void *arg)
             if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
             {
 #ifdef DEBUG_THREAD
-				dbg = fopen(DEBUG_THREAD_LOG, "a");
-				fprintf(dbg, KBUILD_LOG_ERR, "ioctl failed\n");
-				fflush(dbg);
-				fclose(dbg);
+				dbglog("ioctl failed\n");
 #endif
                 syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
             }
@@ -158,10 +167,7 @@ void *threadfunc(void *arg)
     else 
     {
 #ifdef DEBUG_THREAD
-		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg, KBUILD_LOG_ERR, "WRITE branch\n");
-		fflush(dbg);
-		fclose(dbg);
+		dbglog("WRITE branch\n");
 #endif
 		syslog(LOG_ERR, "WRITE branch");
         size_t written_total = 0;
@@ -169,10 +175,7 @@ void *threadfunc(void *arg)
         {
             ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
 #ifdef DEBUG_THREAD
-			dbg = fopen(DEBUG_THREAD_LOG, "a");
-			fprintf(dbg, KBUILD_LOG_ERR, "WRITE total_len=%zu\n", total_len);
-			fflush(dbg);
-			fclose(dbg);
+			dbglog("WRITE total_len=%zu\n", total_len);
 #endif
             syslog(LOG_ERR,  KBUILD_LOG_ERR, "WRITE total_len=%zu", total_len);
             if (written < 0) break;
@@ -198,19 +201,13 @@ void *threadfunc(void *arg)
     ssize_t bytes_read;
 
 #ifdef DEBUG_THREAD
-	dbg = fopen(DEBUG_THREAD_LOG, "a");
-	fprintf(dbg, KBUILD_LOG_ERR, "START READ\n", total_len);
-	fflush(dbg);
-	fclose(dbg);
+	dbglog("START READ\n", total_len);
 #endif
 	syslog(LOG_ERR, "START READ");
     while ((bytes_read = read(fd, send_buf, sizeof(send_buf))) > 0) 
     {
 #ifdef DEBUG_THREAD
-		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg, KBUILD_LOG_ERR, "READ returned %zd\n", bytes_read);
-		fflush(dbg);
-		fclose(dbg);
+		dbglog(dbg, KBUILD_LOG_ERR, "READ returned %zd\n", bytes_read);
 #endif
         syslog(LOG_ERR, "READ returned %zd", bytes_read);
         size_t sent_total = 0;
@@ -218,10 +215,7 @@ void *threadfunc(void *arg)
         {
             ssize_t sent = send(th_arg->new_fd, send_buf + sent_total, bytes_read - sent_total, 0);
 #ifdef DEBUG_THREAD
-			dbg = fopen(DEBUG_THREAD_LOG, "a");
-			fprintf(dbg, KBUILD_LOG_ERR, "SEND returned %zd\n", sent);
-			fflush(dbg);
-			fclose(dbg);
+			dbglog("SEND returned %zd\n", sent);
 #endif
             syslog(LOG_ERR, "SEND returned %zd", sent);
             if (sent < 0) 
@@ -231,10 +225,7 @@ void *threadfunc(void *arg)
     }
 
 #ifdef DEBUG_THREAD
-		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg, KBUILD_LOG_ERR, "READ DONE\n");
-		fflush(dbg);
-		fclose(dbg);
+		dbglog("READ DONE\n");
 #endif
 
     close(fd);
@@ -247,10 +238,7 @@ void *threadfunc(void *arg)
     pthread_mutex_unlock(&file_mutex);
 
 #ifdef DEBUG_THREAD
-		dbg = fopen(DEBUG_THREAD_LOG, "a");
-		fprintf(dbg, KBUILD_LOG_ERR, "THREAD DONE");
-		fflush(dbg);
-		fclose(dbg);
+		dbglog("THREAD DONE");
 #endif
 	syslog(LOG_ERR, "THREAD DONE");
 
