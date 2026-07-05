@@ -133,69 +133,92 @@ void *threadfunc(void *arg)
     pthread_mutex_lock(&file_mutex);
 
     int fd = open(FOUT, O_RDWR);
-    if (fd < 0) 
-    {
-        pthread_mutex_unlock(&file_mutex);
-        close(th_arg->new_fd);
-        return NULL;
-    }
 
-    /* -------- PARSE IOCTL OR NORMAL WRITE -------- */
-    if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0) 
-    {
-#ifdef DEBUG_THREAD
-		dbglog("IOCTL branch\n");
-#endif
-		syslog(LOG_ERR, "IOCTL branch");
-        uint32_t cmd_idx, cmd_offset;
+	pthread_mutex_lock(&file_mutex);
 
-        if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2) 
-        {
-            struct aesd_seekto seekto;
-            seekto.write_cmd = cmd_idx;
-            seekto.write_cmd_offset = cmd_offset;
-
-            if (ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto) != 0) 
-            {
-#ifdef DEBUG_THREAD
-				dbglog("ioctl failed\n");
-#endif
-                syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
-            }
-        }
-    } 
-    else 
-    {
-#ifdef DEBUG_THREAD
-		dbglog("WRITE branch\n");
-#endif
-		syslog(LOG_ERR, "WRITE branch");
-        size_t written_total = 0;
-        while (written_total < total_len) 
-        {
-            ssize_t written = write(fd, full_buf + written_total, total_len - written_total);
-#ifdef DEBUG_THREAD
-			dbglog("WRITE total_len=%zu\n", total_len);
-#endif
-            syslog(LOG_ERR,  KBUILD_LOG_ERR, "WRITE total_len=%zu", total_len);
-            if (written < 0) break;
-            written_total += written;
-        }
-    }
-
-    /* KRITISCH: IMMER danach */
-	fsync(fd);
-
-	close(fd);
-
-	fd = open(FOUT, O_RDONLY);
-	if(fd < 0)
+	int fd = open(FOUT, O_RDWR);
+	if (fd < 0)
 	{
 		pthread_mutex_unlock(&file_mutex);
 		close(th_arg->new_fd);
 		return NULL;
 	}
 
+	bool is_ioctl = false;
+
+	/* -------- PARSE IOCTL OR NORMAL WRITE -------- */
+	if (strncmp(full_buf, IOCTL_PREFIX, strlen(IOCTL_PREFIX)) == 0)
+	{
+		is_ioctl = true;
+		dbglog("IOCTL branch");
+
+		uint32_t cmd_idx, cmd_offset;
+
+		if (sscanf(full_buf + strlen(IOCTL_PREFIX), "%u,%u", &cmd_idx, &cmd_offset) == 2)
+		{
+			struct aesd_seekto seekto;
+			seekto.write_cmd = cmd_idx;
+			seekto.write_cmd_offset = cmd_offset;
+
+			int ioctl_ret = ioctl(fd, AESDCHAR_IOCSEEKTO, &seekto);
+			dbglog("IOCTL ret=%d errno=%d cmd=%u offset=%u",
+				   ioctl_ret, errno, cmd_idx, cmd_offset);
+
+			if (ioctl_ret != 0)
+			{
+				syslog(LOG_ERR, "<AESDSOCKET>ioctl failed");
+			}
+		}
+	}
+	else
+	{
+		dbglog("WRITE branch");
+
+		size_t written_total = 0;
+		while (written_total < total_len)
+		{
+			ssize_t written = write(fd,
+									full_buf + written_total,
+									total_len - written_total);
+
+			dbglog("WRITE ret=%zd errno=%d total_len=%zu",
+				   written, errno, total_len);
+
+			if (written < 0)
+			{
+				break;
+			}
+
+			written_total += written;
+		}
+
+		fsync(fd);
+
+	#if USE_AESD_CHAR_DEVICE
+		/*
+		 * For normal writes we want to read the whole device contents
+		 * from the beginning.
+		 */
+		close(fd);
+
+		fd = open(FOUT, O_RDONLY);
+		if (fd < 0)
+		{
+			pthread_mutex_unlock(&file_mutex);
+			close(th_arg->new_fd);
+			return NULL;
+		}
+	#else
+		lseek(fd, 0, SEEK_SET);
+	#endif
+	}
+
+	/*
+	 * Important:
+	 * For IOCTL commands, DO NOT close/reopen and DO NOT lseek here.
+	 * AESDCHAR_IOCSEEKTO sets the file position on this fd.
+	 */
+	 
     /* -------- READ BACK AND SEND -------- */
     char send_buf[1024];
     ssize_t bytes_read;
